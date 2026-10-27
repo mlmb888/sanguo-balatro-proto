@@ -7,7 +7,7 @@ https://mlmb888.github.io/sanguo-balatro-proto/?v=4
 
 若 github.io 构建延迟，可用备用：
 - https://raw.githack.com/mlmb888/sanguo-balatro-proto/master/index.html?v=4
-- https://cdn.jsdelivr.net/gh/mlmb888/sanguo-balatro-proto@4a5512fc08191148c081e80d8bb03c82e2b4dc71/index.html?v=4
+- https://cdn.jsdelivr.net/gh/mlmb888/sanguo-balatro-proto@3c09c86c4a21879c0b66a27d4cce34cfafb5d8ae/index.html?v=4
 
 
 本地：`/workspace/sanguo-balatro-proto/`（`node sim.mjs 50` 可复现平衡）
