@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>三国小丑牌 · 试玩</title>
-<meta name="sg-proto-v" content="5" />
+<meta name="sg-proto-v" content="6" />
 <style>
 :root {
   --bg: #1a1410;
@@ -272,6 +272,83 @@ body {
 .suit-pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
 .suit-pick-grid .war-btn { padding: 12px; font-size: .95rem; }
 
+
+/* v0.6 feel */
+.card.can-combo {
+  box-shadow: 0 0 0 2px rgba(201,162,39,.55), 0 0 14px rgba(201,162,39,.45);
+  animation: comboBreath 1.6s ease-in-out infinite;
+}
+.card.can-combo.selected {
+  box-shadow: 0 8px 16px rgba(201,162,39,.55), 0 0 0 2px #ffe08a, 0 0 18px rgba(255,220,120,.6);
+}
+@keyframes comboBreath {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(201,162,39,.4), 0 0 8px rgba(201,162,39,.25); }
+  50% { box-shadow: 0 0 0 2px rgba(255,220,120,.85), 0 0 18px rgba(201,162,39,.65); }
+}
+.card .combo-tag {
+  position: absolute; bottom: 2px; left: 0; right: 0; text-align: center;
+  font-size: .48rem; color: #8a5a10; font-family: "PingFang SC", sans-serif; opacity: .85;
+}
+.hand-preview .gen-name {
+  display: block; font-size: 1.55rem; color: var(--gold); font-weight: 800;
+  letter-spacing: .25em; text-shadow: 0 0 18px rgba(201,162,39,.55);
+  font-family: "Songti SC", "Noto Serif SC", serif; margin: 2px 0 4px;
+}
+.hand-preview .streak {
+  color: #ffd27a; font-weight: 700; letter-spacing: .1em;
+}
+.float-score.crit {
+  font-size: 2.1rem; color: #ffe9a8;
+  text-shadow: 0 0 28px rgba(255,200,80,.8), 0 2px 0 #000;
+}
+.ink-flash {
+  position: absolute; inset: 0; z-index: 50; display: none;
+  align-items: center; justify-content: center; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(201,162,39,.35), rgba(10,8,6,.82) 55%, rgba(0,0,0,.9));
+}
+.ink-flash.show { display: flex; animation: inkFlash 1.05s ease forwards; }
+.ink-flash .ink-name {
+  font-size: 3.2rem; font-weight: 900; color: #f3e6c8;
+  letter-spacing: .35em; font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+  text-shadow: 0 0 30px rgba(201,162,39,.9), 2px 3px 0 #3a2810, -1px -1px 0 #000;
+  transform: rotate(-6deg);
+}
+.ink-flash .ink-sub {
+  position: absolute; bottom: 28%; font-size: .95rem; color: var(--gold); letter-spacing: .3em; opacity: .9;
+}
+@keyframes inkFlash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+#app.shake { animation: screenShake .45s ease; }
+@keyframes screenShake {
+  0%, 100% { transform: translate(0,0); }
+  20% { transform: translate(-4px, 2px) rotate(-0.4deg); }
+  40% { transform: translate(5px, -3px) rotate(0.5deg); }
+  60% { transform: translate(-3px, -2px) rotate(-0.3deg); }
+  80% { transform: translate(3px, 2px) rotate(0.2deg); }
+}
+.ink-splash {
+  position: absolute; inset: 0; z-index: 45; pointer-events: none;
+}
+.joker.light-up {
+  animation: jokerLight 1.1s ease;
+  box-shadow: 0 0 20px rgba(201,162,39,.7);
+  border-color: var(--gold);
+}
+@keyframes jokerLight {
+  0% { transform: scale(.85); filter: brightness(1.8); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+.combo-chip {
+  display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px;
+  border: 1px solid var(--gold); color: var(--gold); font-size: .7rem; letter-spacing: .08em;
+}
+
+
 </style>
 </head>
 <body>
@@ -281,9 +358,9 @@ body {
   <!-- Title -->
   <div id="title" class="screen active">
     <h1>三国小丑牌</h1>
-    <div class="sub">三国小丑牌 v0.5<br/>汉字组将 · 同阵齐射 · 底分×倍率</div>
+    <div class="sub">三国小丑牌 v0.6<br/>组将暴击 · 连营 · 出牌爽感</div>
     <button class="btn primary" id="btn-start">开 始 试 玩</button>
-    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · v0.5 · 组将·同阵 · 非扑克 · 乱出掉气势</div>
+    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · v0.6 · 组将暴击 · 连营 · 非扑克</div>
   </div>
 
   <!-- Game -->
@@ -393,6 +470,8 @@ body {
   </div>
 
   <div class="toast" id="toast"></div>
+  <div class="ink-flash" id="ink-flash"><div class="ink-name" id="ink-name">关羽</div><div class="ink-sub" id="ink-sub">组将暴击</div></div>
+  <canvas class="ink-splash" id="ink-splash" width="430" height="800"></canvas>
 </div>
 
 <script>
@@ -407,7 +486,7 @@ const SUITS = [
   { id: 'qun', name: '群', cls: 's-qun' },
 ];
 const RANK_LABEL = { 11:'J', 12:'Q', 13:'K', 14:'A' };
-const HAND_LIMIT = 8;
+const HAND_LIMIT = 9;
 const MAX_SELECT = 5;
 
 const HAND_TYPES = [
@@ -430,9 +509,9 @@ const GENERALS = {
 const FACTION_NAME = { wei: '魏', shu: '蜀', wu: '吴', qun: '群' };
 
 const STAGES = [
-  { id: 'hj1', name: '黄巾 · 小关1', target: 360, plays: 3, discards: 2, boss: null, reward: 12 },
-  { id: 'hj2', name: '黄巾 · 小关2', target: 720, plays: 3, discards: 2, boss: null, reward: 16 },
-  { id: 'hlg', name: 'Boss · 虎牢关', target: 800, plays: 3, discards: 2,
+  { id: 'hj1', name: '黄巾 · 小关1', target: 300, plays: 3, discards: 2, boss: null, reward: 12 },
+  { id: 'hj2', name: '黄巾 · 小关2', target: 620, plays: 3, discards: 2, boss: null, reward: 16 },
+  { id: 'hlg', name: 'Boss · 虎牢关', target: 720, plays: 3, discards: 2,
     boss: { text: '虎牢关：必须同阵或组将才计分，散兵得 0', requireStructure: true }, reward: 24 },
 ];
 
@@ -463,12 +542,16 @@ function buildDeck() {
   const cards = [];
   let uid = 0;
   const guaranteed = [];
+  // v0.6：关羽/张飞/赵云字位加重，组将更容易摸到
+  const HOT = { '关':4, '羽':4, '张':4, '飞':4, '赵':3, '云':3, '诸':2, '葛':2, '亮':2 };
   for (const ch of NAME_CHARS) {
-    guaranteed.push(ch, ch);
+    const n = HOT[ch] || 2;
+    for (let k = 0; k < n; k++) guaranteed.push(ch);
   }
   while (guaranteed.length < 52) {
     guaranteed.push(FILL_CHARS[guaranteed.length % FILL_CHARS.length]);
   }
+  if (guaranteed.length > 52) guaranteed.length = 52;
   shuffle(guaranteed);
   let ranks = [2,3,4,5,6,7,8,9,10,11,12,13,14];
   // Shop: 剔除羸兵 — bias toward higher ranks
@@ -552,7 +635,8 @@ function evaluateHand(cards) {
     typeBase = 50;
     mult = 3;
     if (isFormation) mult += 1;
-    mult *= 2;
+    mult *= 2; // 连名
+    mult *= 2; // v0.6 组将暴击
     pri = 4;
   } else if (combos.length === 1) {
     id = 'combo';
@@ -560,6 +644,7 @@ function evaluateHand(cards) {
     typeBase = 50;
     mult = 3;
     if (isFormation) mult += 1;
+    mult *= 2; // v0.6 组将暴击
     pri = 3;
   } else if (isFormation) {
     id = 'formation';
@@ -645,13 +730,127 @@ function applyJokers(evalResult, cards, jokers, ctx) {
       }
     }
   }
+
+  // v0.6 连营：连续非散兵，第二次起 +N（N=当前连营数）
+  const streak = ctx.structureStreak || 0;
+  const isStruct = evalResult.type.id !== 'scatter';
+  let Lianying = 0;
+  if (isStruct && streak >= 1) {
+    Lianying = streak + 1; // 本手打出后的连营数
+    mult += Lianying;
+    notes.push('连营×' + Lianying + '(+' + Lianying + ')');
+  }
+  // 已拥有武将再次组将：本回合倍率+2
+  if (ctx.ownedReplay) {
+    mult += 2;
+    notes.push('再组将+2');
+  }
+
   return {
     base, mult, score: base * mult, notes,
     typeBase: evalResult.base,
     rankChips: evalResult.rankChips,
     warBonus, resonate,
+    lianying: Lianying,
   };
 }
+
+
+/** 手牌中可凑成完整将名的字牌 id */
+function comboHintIds(hand) {
+  const byChar = new Map();
+  for (const c of hand) {
+    if (!byChar.has(c.char)) byChar.set(c.char, []);
+    byChar.get(c.char).push(c);
+  }
+  const ids = new Set();
+  for (const g of Object.values(GENERALS)) {
+    if (!g.chars.every(ch => (byChar.get(ch) || []).length > 0)) continue;
+    const used = new Set();
+    for (const ch of g.chars) {
+      const card = (byChar.get(ch) || []).find(c => !used.has(c.id));
+      if (card) { ids.add(card.id); used.add(card.id); }
+    }
+  }
+  return ids;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function showInkFlash(name, sub) {
+  const box = $('ink-flash');
+  $('ink-name').textContent = name;
+  $('ink-sub').textContent = sub || '组将暴击';
+  box.classList.remove('show');
+  void box.offsetWidth;
+  box.classList.add('show');
+  const app = $('app');
+  app.classList.remove('shake');
+  void app.offsetWidth;
+  app.classList.add('shake');
+  setTimeout(() => box.classList.remove('show'), 1100);
+  setTimeout(() => app.classList.remove('shake'), 500);
+}
+function burstInkParticles() {
+  const cv = $('ink-splash');
+  if (!cv) return;
+  const rect = $('app').getBoundingClientRect();
+  cv.width = Math.floor(rect.width);
+  cv.height = Math.floor(rect.height);
+  const ctx = cv.getContext('2d');
+  const parts = [];
+  for (let i = 0; i < 28; i++) {
+    parts.push({
+      x: cv.width * (0.35 + Math.random() * 0.3),
+      y: cv.height * (0.38 + Math.random() * 0.15),
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8 - 2,
+      r: 2 + Math.random() * 5,
+      life: 1,
+      color: Math.random() > 0.4 ? 'rgba(201,162,39,' : 'rgba(243,230,200,',
+    });
+  }
+  let frame = 0;
+  function tick() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const p of parts) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.03;
+      if (p.life <= 0) continue;
+      ctx.beginPath();
+      ctx.fillStyle = p.color + p.life.toFixed(2) + ')';
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    frame++;
+    if (frame < 40) requestAnimationFrame(tick);
+    else ctx.clearRect(0, 0, cv.width, cv.height);
+  }
+  requestAnimationFrame(tick);
+}
+async function animateScoreFloat(base, mult, total, crit) {
+  const float = $('float-score');
+  float.classList.toggle('crit', !!crit);
+  float.style.animation = 'none';
+  void float.offsetWidth;
+  float.style.animation = '';
+  // 底分滚动
+  const steps = 12;
+  for (let i = 1; i <= steps; i++) {
+    const v = Math.round(base * i / steps);
+    float.textContent = String(v);
+    await sleep(28);
+  }
+  float.textContent = base + ' ×';
+  await sleep(180);
+  float.textContent = base + ' × ' + mult;
+  await sleep(220);
+  // 总分弹出
+  for (let i = 1; i <= steps; i++) {
+    const v = Math.round(total * i / steps);
+    float.textContent = base + ' × ' + mult + ' = ' + v;
+    await sleep(30);
+  }
+  float.textContent = base + ' × ' + mult + ' = ' + total;
+}
+
 
 // ========== Game State ==========
 const state = {
@@ -672,6 +871,7 @@ const state = {
   playsMadeThisStage: 0,
   zhaoyunUsedThisStage: false,
   highStreak: 0,
+  structureStreak: 0, // 连营：连续非散兵次数
   warSuit: 'shu',
   warSuitPlayed: false,
   warLocked: false,
@@ -679,12 +879,12 @@ const state = {
   lastGaze: null,
 };
 
-const LS_TUT = 'sg_balatro_tut_v5';
-const LS_BOSS = 'sg_balatro_boss_tip_v5';
+const LS_TUT = 'sg_balatro_tut_v6';
+const LS_BOSS = 'sg_balatro_boss_tip_v6';
 const TUT_STEPS = [
-  { title: '① 选字出牌', body: '点选 1～5 张汉字牌出阵（再点取消）。目标是组将与同阵，不是凑扑克牌型。' },
-  { title: '② 底分×倍率', body: '散兵弱；≥3 张同阵营=同阵（5 张=齐射）；凑齐武将名=组将。底分=档位+点数(+宣战)，再×倍率凑目标。' },
-  { title: '③ 组将与小丑', body: '组出「关羽」等会解锁小丑。宣战花色每张+4；点小丑看能力。虎牢关散兵不计分。' },
+  { title: '① 选字组将', body: '金字边框的牌提示「可组将」。凑齐武将名出牌会暴击（倍率×2）并墨迹大字。' },
+  { title: '② 连营与倍率', body: '连续打出同阵/组将会「连营」叠倍率；散兵会断连。底分×倍率凑目标。' },
+  { title: '③ 点亮武将', body: '首次组将永久点亮小丑；已拥有再组将则本回合倍率再+2。虎牢关散兵不计分。' },
 ];
 
 // ========== UI Render ==========
@@ -747,13 +947,18 @@ function renderHand() {
   });
   // keep visual order stable by sorting in place reference — update hand order
   state.hand = sorted;
+  const hints = comboHintIds(state.hand);
   for (const c of state.hand) {
     const div = document.createElement('div');
-    div.className = 'card ' + c.suitCls + (state.selected.has(c.id) ? ' selected' : '');
+    const can = hints.has(c.id);
+    div.className = 'card ' + c.suitCls
+      + (state.selected.has(c.id) ? ' selected' : '')
+      + (can ? ' can-combo' : '');
     div.dataset.id = c.id;
     div.innerHTML = `
       <div class="corner">${rankLabel(c.rank)}<span class="suit-dot">${c.suitName}</span></div>
-      <div class="char">${c.char}</div>`;
+      <div class="char">${c.char}</div>`
+      + (can ? '<div class="combo-tag">可组将</div>' : '');
     div.addEventListener('click', () => toggleSelect(c.id));
     el.appendChild(div);
   }
@@ -765,12 +970,18 @@ function renderHand() {
   updatePreview();
 }
 
-function jokerCtxForPreview() {
+function jokerCtxForPreview(cards) {
+  cards = cards || getSelectedCards();
+  const ev = cards.length ? evaluateHand(cards) : null;
+  const isCombo = ev && (ev.type.id === 'combo' || ev.type.id === 'double_combo');
+  const ownedReplay = !!(isCombo && ev.comboGeneral && state.ownedGenerals.has(ev.comboGeneral.id));
   return {
     firstPlay: state.playsMadeThisStage === 0,
     zhaoyunUsed: state.zhaoyunUsedThisStage,
     warSuit: state.warSuit,
     highStreak: state.highStreak,
+    structureStreak: state.structureStreak,
+    ownedReplay,
   };
 }
 function updatePreview() {
@@ -778,21 +989,35 @@ function updatePreview() {
   const prev = $('preview');
   if (!cards.length) {
     const war = FACTION_NAME[state.warSuit] || '—';
-    prev.innerHTML = `点选手牌看预估<span class="muted">结构档 + 牌面点数 [+宣战] = 底分，再 × 倍率 · 宣战：${war}</span>`;
+    const streak = state.structureStreak;
+    const streakHint = streak >= 1
+      ? `<span class="streak">连营蓄势 ×${streak + 1}</span>（再出同阵/组将触发）`
+      : '连续同阵/组将可叠「连营」';
+    prev.innerHTML = `点选手牌看预估<span class="muted">金字边框=可组将 · ${streakHint}<br/>宣战：${war}</span>`;
     return;
   }
   const ev = evaluateHand(cards);
-  const scored = applyJokers(ev, cards, state.jokers, jokerCtxForPreview());
-  const note = scored.notes.length ? `<span class="muted">${scored.notes.join(' · ')}</span>` : '';
+  const scored = applyJokers(ev, cards, state.jokers, jokerCtxForPreview(cards));
   const st = STAGES[state.stageIdx];
   let warn = '';
   if (st.boss && st.boss.requireStructure && ev.type.id === 'scatter') {
     warn = `<span class="muted" style="color:#f0b0b0">虎牢关：散兵本回合得 0 分</span>`;
   }
   const warPart = scored.warBonus ? ` + 宣战${scored.warBonus}` : '';
-  prev.innerHTML = `<span class="ptype">${ev.displayName}</span><br/>`
-    + `<span class="muted">结构${scored.typeBase} + 牌面${scored.rankChips}${warPart} = 底分 ${scored.base}</span><br/>`
-    + `<span class="eq">${scored.base} × ${scored.mult} = ${scored.score}</span>${note}${warn}`;
+  const isCombo = ev.type.id === 'combo' || ev.type.id === 'double_combo';
+  const genLine = isCombo
+    ? `<span class="gen-name">${(ev.comboGeneral && ev.comboGeneral.name) || ev.displayName.replace(/^组将·|^连名·/, '')}</span>`
+    : '';
+  const chip = isCombo ? '<span class="combo-chip">暴击×2</span>' : '';
+  const streakLine = scored.lianying
+    ? `<span class="streak">连营 ×${scored.lianying}</span> · `
+    : '';
+  prev.innerHTML = genLine
+    + `<span class="ptype">${ev.displayName}</span>${chip}<br/>`
+    + `<span class="eq">${scored.base} × ${scored.mult} = ${scored.score}</span><br/>`
+    + `<span class="muted">${streakLine}结构${scored.typeBase} + 牌面${scored.rankChips}${warPart} = 底分 ${scored.base}`
+    + (scored.notes.length ? ' · ' + scored.notes.join(' · ') : '')
+    + `</span>${warn ? '<br/>' + warn : ''}`;
 }
 
 function getSelectedCards() {
@@ -829,6 +1054,7 @@ function startStage() {
   state.playsMadeThisStage = 0;
   state.zhaoyunUsedThisStage = false;
   state.highStreak = 0;
+  state.structureStreak = 0;
   state.warSuitPlayed = false;
   state.warLocked = false;
   // 默认随机一门宣战（可再点选）
@@ -963,15 +1189,18 @@ function dismissBossTip() {
   showWarPick();
 }
 
-function playHand() {
+async function playHand() {
   if (state.phase !== 'play') return;
+  if (state._playing) return;
   const cards = getSelectedCards();
   if (!cards.length) { toast('请先选牌'); return; }
   if (state.playsLeft <= 0) { toast('出牌次数已用完'); return; }
+  state._playing = true;
+  $('btn-play').disabled = true;
 
   const ev = evaluateHand(cards);
   const st = STAGES[state.stageIdx];
-  const ctx = jokerCtxForPreview();
+  const ctx = jokerCtxForPreview(cards);
   let scored = applyJokers(ev, cards, state.jokers, ctx);
   let finalScore = scored.score;
   let note = scored.notes.join(' · ');
@@ -988,35 +1217,48 @@ function playHand() {
     state.warSuitPlayed = true;
   }
   state.warLocked = true;
-  // 散兵连击计数（用于下一次惩罚）
-  if (ev.type.id === 'scatter') state.highStreak += 1;
-  else state.highStreak = 0;
+
+  // 散兵惩罚计数 + 连营
+  const isStruct = ev.type.id !== 'scatter';
+  if (ev.type.id === 'scatter') {
+    state.highStreak += 1;
+    state.structureStreak = 0;
+  } else {
+    state.highStreak = 0;
+    state.structureStreak += 1;
+  }
+
   state.score += finalScore;
   state.playsLeft--;
   state.playsMadeThisStage++;
 
-  // Remove played cards
   const playedIds = new Set(cards.map(c => c.id));
   state.hand = state.hand.filter(c => !playedIds.has(c.id));
   state.discardPile.push(...cards);
   state.selected.clear();
   drawToHand();
 
-  // Unlock general via 组将
+  const isCombo = ev.type.id === 'combo' || ev.type.id === 'double_combo';
+  let firstUnlock = false;
   if (ev.comboGeneral) {
-    unlockGeneral(ev.comboGeneral.id);
+    firstUnlock = unlockGeneral(ev.comboGeneral.id);
   }
 
-  const float = $('float-score');
-  float.textContent = `${scored.typeBase}+${scored.rankChips}`
-    + (scored.warBonus ? `+${scored.warBonus}` : '')
-    + `=${scored.base} × ${scored.mult} = ${finalScore}`;
-  float.style.animation = 'none';
-  void float.offsetWidth;
-  float.style.animation = '';
+  // 演出：组将墨迹 → 数字滚动
+  if (isCombo && ev.comboGeneral) {
+    showInkFlash(ev.comboGeneral.name, firstUnlock ? '点亮武将 · 组将暴击' : '组将暴击');
+    burstInkParticles();
+    await sleep(420);
+  } else if (isStruct && scored.lianying) {
+    toast('连营 ×' + scored.lianying);
+  }
+
+  await animateScoreFloat(scored.base, scored.mult, finalScore, isCombo);
   $('log').textContent = `${ev.displayName}` + (note ? ' · ' + note : '') + ` · 累计 ${state.score}/${st.target}`;
 
   renderAll();
+  state._playing = false;
+  $('btn-play').disabled = false;
   checkStageEnd();
 }
 
@@ -1037,17 +1279,30 @@ function discardHand() {
 }
 
 function unlockGeneral(gid) {
-  if (state.ownedGenerals.has(gid)) return;
+  if (state.ownedGenerals.has(gid)) return false;
   state.ownedGenerals.add(gid);
-  toast(`组将成功！解锁武将「${GENERALS[gid].name}」`);
-  // Auto equip if empty slot
+  toast(`组将成功！点亮「${GENERALS[gid].name}」`);
+  let equipped = false;
   if (state.jokers.length < state.jokerSlots && !state.jokers.includes(gid)) {
-    // Only equip if has implemented effect among first 4, or any owned for demo
     if (['guanyu','zhangfei','zhaoyun','zhuge'].includes(gid)) {
       state.jokers.push(gid);
+      equipped = true;
       toast(`${GENERALS[gid].name} 已装备到小丑槽`);
     }
   }
+  // 点亮动画（render 后触发）
+  requestAnimationFrame(() => {
+    renderJokers();
+    const nodes = document.querySelectorAll('#jokers .joker');
+    nodes.forEach((n, idx) => {
+      if (state.jokers[idx] === gid) {
+        n.classList.remove('light-up');
+        void n.offsetWidth;
+        n.classList.add('light-up');
+      }
+    });
+  });
+  return true;
 }
 
 function checkStageEnd() {
@@ -1116,6 +1371,7 @@ function resetRun() {
   state.playsMadeThisStage = 0;
   state.zhaoyunUsedThisStage = false;
   state.highStreak = 0;
+  state.structureStreak = 0;
   state.warSuit = 'shu';
   state.warSuitPlayed = false;
   state.warLocked = false;

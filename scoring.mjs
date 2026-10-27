@@ -1,4 +1,4 @@
-/** v0.5 scoring — shared by tests & sim */
+/** v0.6 scoring — shared by tests & sim */
 const HAND_TYPES = [
   { id: 'double_combo', name: '连名', typeBase: 50, mult: 3, pri: 4 },
   { id: 'combo', name: '组将', typeBase: 50, mult: 3, pri: 3 },
@@ -19,9 +19,9 @@ const GENERALS = {
 const FACTION_NAME = { wei: '魏', shu: '蜀', wu: '吴', qun: '群' };
 
 const STAGES = [
-  { id: 'hj1', name: '黄巾 · 小关1', target: 360, plays: 3, discards: 2, boss: null, reward: 12 },
-  { id: 'hj2', name: '黄巾 · 小关2', target: 720, plays: 3, discards: 2, boss: null, reward: 16 },
-  { id: 'hlg', name: 'Boss · 虎牢关', target: 800, plays: 3, discards: 2,
+  { id: 'hj1', name: '黄巾 · 小关1', target: 300, plays: 3, discards: 2, boss: null, reward: 12 },
+  { id: 'hj2', name: '黄巾 · 小关2', target: 620, plays: 3, discards: 2, boss: null, reward: 16 },
+  { id: 'hlg', name: 'Boss · 虎牢关', target: 720, plays: 3, discards: 2,
     boss: { text: '虎牢关：必须同阵或组将才计分，散兵得 0', requireStructure: true }, reward: 24 },
 ];
 
@@ -52,12 +52,16 @@ function buildDeck() {
   const cards = [];
   let uid = 0;
   const guaranteed = [];
+  // v0.6：关羽/张飞/赵云字位加重，组将更容易摸到
+  const HOT = { '关':4, '羽':4, '张':4, '飞':4, '赵':3, '云':3, '诸':2, '葛':2, '亮':2 };
   for (const ch of NAME_CHARS) {
-    guaranteed.push(ch, ch);
+    const n = HOT[ch] || 2;
+    for (let k = 0; k < n; k++) guaranteed.push(ch);
   }
   while (guaranteed.length < 52) {
     guaranteed.push(FILL_CHARS[guaranteed.length % FILL_CHARS.length]);
   }
+  if (guaranteed.length > 52) guaranteed.length = 52;
   shuffle(guaranteed);
   let ranks = [2,3,4,5,6,7,8,9,10,11,12,13,14];
   // Shop: 剔除羸兵 — bias toward higher ranks
@@ -141,7 +145,8 @@ function evaluateHand(cards) {
     typeBase = 50;
     mult = 3;
     if (isFormation) mult += 1;
-    mult *= 2;
+    mult *= 2; // 连名
+    mult *= 2; // v0.6 组将暴击
     pri = 4;
   } else if (combos.length === 1) {
     id = 'combo';
@@ -149,6 +154,7 @@ function evaluateHand(cards) {
     typeBase = 50;
     mult = 3;
     if (isFormation) mult += 1;
+    mult *= 2; // v0.6 组将暴击
     pri = 3;
   } else if (isFormation) {
     id = 'formation';
@@ -234,11 +240,28 @@ function applyJokers(evalResult, cards, jokers, ctx) {
       }
     }
   }
+
+  // v0.6 连营：连续非散兵，第二次起 +N（N=当前连营数）
+  const streak = ctx.structureStreak || 0;
+  const isStruct = evalResult.type.id !== 'scatter';
+  let Lianying = 0;
+  if (isStruct && streak >= 1) {
+    Lianying = streak + 1; // 本手打出后的连营数
+    mult += Lianying;
+    notes.push('连营×' + Lianying + '(+' + Lianying + ')');
+  }
+  // 已拥有武将再次组将：本回合倍率+2
+  if (ctx.ownedReplay) {
+    mult += 2;
+    notes.push('再组将+2');
+  }
+
   return {
     base, mult, score: base * mult, notes,
     typeBase: evalResult.base,
     rankChips: evalResult.rankChips,
     warBonus, resonate,
+    lianying: Lianying,
   };
 }
 
