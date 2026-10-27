@@ -20,7 +20,9 @@ python3 -m http.server 8765
 
 部署后填入（见报告）：
 
-- 公开 URL：见最终报告
+- 公开 URL：https://mlmb888.github.io/sanguo-balatro-proto/
+- 备用 CDN：https://cdn.jsdelivr.net/gh/mlmb888/sanguo-balatro-proto@master/index.html
+- 源码：https://github.com/mlmb888/sanguo-balatro-proto
 
 ## 已实现（v0.1 试玩）
 
