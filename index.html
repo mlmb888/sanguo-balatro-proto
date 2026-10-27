@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>三国小丑牌 · 试玩</title>
-<meta name="sg-proto-v" content="2.1" />
+<meta name="sg-proto-v" content="3" />
 <style>
 :root {
   --bg: #1a1410;
@@ -256,6 +256,22 @@ body {
 .tut-card .steps { opacity: .5; font-size: .75rem; margin-bottom: 12px; }
 .tut-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 
+
+.war-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 4px 4px 6px; flex-shrink: 0; font-size: .72rem;
+}
+.war-bar .lab { opacity: .65; margin-right: 2px; }
+.war-btn {
+  appearance: none; border: 1px solid var(--border); background: var(--panel);
+  color: var(--paper); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: .75rem;
+}
+.war-btn.active { border-color: var(--gold); background: rgba(201,162,39,.22); color: var(--gold); font-weight: 600; }
+.war-btn:disabled { opacity: .55; cursor: default; }
+.war-note { opacity: .5; font-size: .65rem; width: 100%; }
+.suit-pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.suit-pick-grid .war-btn { padding: 12px; font-size: .95rem; }
+
 </style>
 </head>
 <body>
@@ -267,7 +283,7 @@ body {
     <h1>三国小丑牌</h1>
     <div class="sub">武将即小丑 · 战役盲注 · 汉字组名<br/>底分 × 倍率 · 非文字塔防</div>
     <button class="btn primary" id="btn-start">开 始 试 玩</button>
-    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · 目标 80/180/280 · 开局仅关羽</div>
+    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · v0.3 · 点数入分 · 宣战花色 · 目标120/260/400</div>
   </div>
 
   <!-- Game -->
@@ -284,6 +300,14 @@ body {
       <div class="stat"><span class="label">小丑</span><span class="val" style="font-size:.7rem;opacity:.75">点将看效果</span></div>
     </div>
     <div id="boss-rule" class="boss-rule" style="display:none"></div>
+    <div class="war-bar" id="war-bar">
+      <span class="lab">宣战</span>
+      <button type="button" class="war-btn" data-suit="wei">魏</button>
+      <button type="button" class="war-btn" data-suit="shu">蜀</button>
+      <button type="button" class="war-btn" data-suit="wu">吴</button>
+      <button type="button" class="war-btn" data-suit="qun">群</button>
+      <span class="war-note" id="war-note">该花色每张 +4 底分；本关未打出则铜钱减半</span>
+    </div>
     <div class="jokers" id="jokers"></div>
     <div class="score-area">
       <div class="hand-preview" id="preview">点选手牌看预估得分<br/><span class="muted">底分 × 倍率 = 本回合得分</span></div>
@@ -340,6 +364,23 @@ body {
     </div>
   </div>
 
+  <!-- War suit pick -->
+  <div id="war-pick" class="overlay">
+    <div class="tut-card">
+      <h3>本关宣战</h3>
+      <p>选择一门花色：打出的该花色每张 <b>+4 底分</b>。若本关从未打出，破关铜钱 <b>-50%</b>。</p>
+      <div class="suit-pick-grid" id="war-pick-grid">
+        <button type="button" class="war-btn" data-suit="wei">魏</button>
+        <button type="button" class="war-btn" data-suit="shu">蜀</button>
+        <button type="button" class="war-btn" data-suit="wu">吴</button>
+        <button type="button" class="war-btn" data-suit="qun">群</button>
+      </div>
+      <div class="tut-actions">
+        <button class="btn small primary" id="btn-war-ok">开战</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Boss tip -->
   <div id="boss-tip" class="overlay">
     <div class="tut-card">
@@ -377,27 +418,29 @@ const HAND_TYPES = [
   { id: 'flush', name: '同花', base: 35, mult: 4, pri: 6 },
   { id: 'straight', name: '顺子', base: 30, mult: 4, pri: 5 },
   { id: 'three', name: '三条', base: 30, mult: 3, pri: 4 },
+  { id: 'mini_flush', name: '小同花', base: 20, mult: 3, pri: 3.5 },
   { id: 'twopair', name: '两对', base: 20, mult: 2, pri: 3 },
   { id: 'pair', name: '对子', base: 10, mult: 2, pri: 2 },
   { id: 'high', name: '高牌', base: 5, mult: 1, pri: 1 },
 ];
 
 const GENERALS = {
-  guanyu:   { id: 'guanyu', name: '关羽', chars: ['关','羽'], desc: '含蜀色 倍率+8；蜀同花再+4' },
-  zhangfei: { id: 'zhangfei', name: '张飞', chars: ['张','飞'], desc: '三条及以上 底分×1.5' },
-  zhaoyun:  { id: 'zhaoyun', name: '赵云', chars: ['赵','云'], desc: '本关首次≤2张高牌/对子 倍率+6' },
-  zhuge:    { id: 'zhuge', name: '诸葛亮', chars: ['诸','葛','亮'], desc: '每关一次「观星」' },
-  liubei:   { id: 'liubei', name: '刘备', chars: ['刘','备'], desc: '（未实装效果）' },
-  caocao:   { id: 'caocao', name: '曹操', chars: ['曹','操'], desc: '（未实装效果）' },
-  zhouyu:   { id: 'zhouyu', name: '周瑜', chars: ['周','瑜'], desc: '（未实装效果）' },
-  lvbu:     { id: 'lvbu', name: '吕布', chars: ['吕','布'], desc: '（未实装效果）' },
+  guanyu:   { id: 'guanyu', name: '关羽', faction: 'shu', chars: ['关','羽'], desc: '全蜀倍率+6；蜀同花/小同花再+4' },
+  zhangfei: { id: 'zhangfei', name: '张飞', faction: 'shu', chars: ['张','飞'], desc: '三条及以上 底分×1.5' },
+  zhaoyun:  { id: 'zhaoyun', name: '赵云', faction: 'qun', chars: ['赵','云'], desc: '本关首次≤2张高牌/对子 倍率+6' },
+  zhuge:    { id: 'zhuge', name: '诸葛亮', faction: 'shu', chars: ['诸','葛','亮'], desc: '每关一次「观星」' },
+  liubei:   { id: 'liubei', name: '刘备', faction: 'shu', chars: ['刘','备'], desc: '（未实装效果）' },
+  caocao:   { id: 'caocao', name: '曹操', faction: 'wei', chars: ['曹','操'], desc: '（未实装效果）' },
+  zhouyu:   { id: 'zhouyu', name: '周瑜', faction: 'wu', chars: ['周','瑜'], desc: '（未实装效果）' },
+  lvbu:     { id: 'lvbu', name: '吕布', faction: 'qun', chars: ['吕','布'], desc: '（未实装效果）' },
 };
+const FACTION_NAME = { wei: '魏', shu: '蜀', wu: '吴', qun: '群' };
 
 const STAGES = [
-  { id: 'hj1', name: '黄巾 · 小关1', target: 80, plays: 4, discards: 2, boss: null, reward: 10 },
-  { id: 'hj2', name: '黄巾 · 小关2', target: 180, plays: 4, discards: 2, boss: null, reward: 14 },
-  { id: 'hlg', name: 'Boss · 虎牢关', target: 280, plays: 4, discards: 2,
-    boss: { text: '虎牢关：必须对子及以上才计分，高牌得 0', minPri: 2 }, reward: 22 },
+  { id: 'hj1', name: '黄巾 · 小关1', target: 120, plays: 4, discards: 2, boss: null, reward: 12 },
+  { id: 'hj2', name: '黄巾 · 小关2', target: 260, plays: 4, discards: 2, boss: null, reward: 16 },
+  { id: 'hlg', name: 'Boss · 虎牢关', target: 400, plays: 4, discards: 2,
+    boss: { text: '虎牢关：必须对子及以上才计分，高牌得 0', minPri: 2 }, reward: 24 },
 ];
 
 // Char pool for deck construction — ensure generals' chars appear enough
@@ -469,17 +512,21 @@ function isFlush(cards) {
   const s = cards[0].suit;
   return cards.every(c => c.suit === s);
 }
+function isMiniFlush(cards) {
+  // 3 或 4 张全同花
+  if (cards.length < 3 || cards.length > 4) return false;
+  const s = cards[0].suit;
+  return cards.every(c => c.suit === s);
+}
 function isStraight(cards) {
   if (cards.length !== 5) return false;
   const ranks = [...new Set(cards.map(c => c.rank))].sort((a,b) => a - b);
   if (ranks.length !== 5) return false;
-  // A-2-3-4-5 wheel
   if (ranks[0] === 2 && ranks[1] === 3 && ranks[2] === 4 && ranks[3] === 5 && ranks[4] === 14) return true;
   return ranks[4] - ranks[0] === 4;
 }
 function detectCombo(cards) {
   const chars = new Set(cards.map(c => c.char));
-  // Prefer longer names / check all implemented
   const order = ['zhuge','guanyu','zhangfei','zhaoyun','liubei','caocao','zhouyu','lvbu'];
   for (const id of order) {
     const g = GENERALS[id];
@@ -487,11 +534,20 @@ function detectCombo(cards) {
   }
   return null;
 }
+function equippedFactions(jokers) {
+  const set = new Set();
+  for (const jid of jokers) {
+    const g = GENERALS[jid];
+    if (g && g.faction) set.add(g.faction);
+  }
+  return set;
+}
 
 function evaluateHand(cards) {
   if (!cards.length) return null;
   const counts = rankCounts(cards);
   const flush = isFlush(cards);
+  const miniFlush = isMiniFlush(cards);
   const straight = isStraight(cards);
   const combo = detectCombo(cards);
   let best = null;
@@ -509,18 +565,13 @@ function evaluateHand(cards) {
   if (flush) consider('flush');
   if (straight) consider('straight');
   if (counts[0] === 3) consider('three');
+  if (miniFlush) consider('mini_flush');
   if (counts[0] === 2 && counts[1] === 2) consider('twopair');
   if (counts[0] === 2) consider('pair');
   consider('high');
 
-  // Chip contribution from ranks (Balatro-ish: add rank values to base)
-  const chipBonus = cards.reduce((s, c) => s + Math.min(c.rank, 10) + (c.rank === 14 ? 1 : 0), 0);
-  // Simpler: A=11, face=10, else rank — but keep modest for early targets
-  const rankChips = cards.reduce((s, c) => {
-    if (c.rank === 14) return s + 11;
-    if (c.rank >= 11) return s + 10;
-    return s + c.rank;
-  }, 0);
+  // A. 单牌入分：点数原值（A=14, K=13...）
+  const rankChips = cards.reduce((s, c) => s + c.rank, 0);
 
   return {
     type: best,
@@ -535,16 +586,36 @@ function evaluateHand(cards) {
 
 function applyJokers(evalResult, cards, jokers, ctx) {
   ctx = ctx || {};
-  let base = evalResult.base + evalResult.rankChips;
+  const warSuit = ctx.warSuit || null;
+  const warCount = warSuit ? cards.filter(c => c.suit === warSuit).length : 0;
+  const warBonus = warCount * 4;
+  let base = evalResult.base + evalResult.rankChips + warBonus;
   let mult = evalResult.mult;
   const notes = [];
+  if (warBonus) notes.push('宣战+' + warBonus);
+
+  // B1. 阵营共鸣：每张与任一装备小丑同阵营的牌，倍率+1
+  const factions = equippedFactions(jokers);
+  let resonate = 0;
+  if (factions.size) {
+    for (const c of cards) {
+      if (factions.has(c.suit)) resonate++;
+    }
+  }
+  if (resonate) {
+    mult += resonate;
+    notes.push('共鸣×' + resonate);
+  }
 
   for (const jid of jokers) {
     if (jid === 'guanyu') {
-      const hasShu = cards.some(c => c.suit === 'shu');
-      if (hasShu) { mult += 8; notes.push('关羽+8倍'); }
-      if (evalResult.type.id === 'flush' && cards.every(c => c.suit === 'shu')) {
-        mult += 4; notes.push('关羽蜀同花+4');
+      const allShu = cards.length > 0 && cards.every(c => c.suit === 'shu');
+      if (allShu) {
+        mult += 6; notes.push('关羽全蜀+6');
+        const tid = evalResult.type.id;
+        if (tid === 'flush' || tid === 'mini_flush' || tid === 'straight_flush') {
+          mult += 4; notes.push('关羽蜀同花+4');
+        }
       }
     }
     if (jid === 'zhangfei') {
@@ -555,7 +626,6 @@ function applyJokers(evalResult, cards, jokers, ctx) {
       }
     }
     if (jid === 'zhaoyun') {
-      // 本关仅第一次出牌，且≤2张，且高牌/对子（不含组将）
       const tid = evalResult.type.id;
       const okType = (tid === 'high' || tid === 'pair');
       if (ctx.firstPlay && !ctx.zhaoyunUsed && cards.length <= 2 && okType) {
@@ -563,7 +633,12 @@ function applyJokers(evalResult, cards, jokers, ctx) {
       }
     }
   }
-  return { base, mult, score: base * mult, notes };
+  return {
+    base, mult, score: base * mult, notes,
+    typeBase: evalResult.base,
+    rankChips: evalResult.rankChips,
+    warBonus, resonate,
+  };
 }
 
 // ========== Game State ==========
@@ -584,15 +659,18 @@ const state = {
   gazeUsed: false,
   playsMadeThisStage: 0,
   zhaoyunUsedThisStage: false,
+  warSuit: 'shu',
+  warSuitPlayed: false,
+  warLocked: false,
   phase: 'title', // title|play|shop|result|over
   lastGaze: null,
 };
 
-const LS_TUT = 'sg_balatro_tut_v2';
+const LS_TUT = 'sg_balatro_tut_v3';
 const LS_BOSS = 'sg_balatro_boss_tip_v1';
 const TUT_STEPS = [
   { title: '① 选牌', body: '点选手牌（最多5张），选中的牌会上浮。再点一次可取消。' },
-  { title: '② 出牌得分', body: '点「出牌」：本回合得分 = 底分 × 倍率。累计达到目标分就过关；出牌用尽未达标会掉气势。' },
+  { title: '② 出牌得分', body: '得分 =（牌型底分 + 每张牌点数 + 宣战花色加分）× 倍率。宣战花色每张 +4；本关完全不打出该色，破关铜钱减半。' },
   { title: '③ 组将与小丑', body: '凑齐武将名字（如「关」「羽」）可打出「组将」。组将成功会点亮小丑槽——点小丑可看能力。' },
 ];
 
@@ -678,13 +756,15 @@ function jokerCtxForPreview() {
   return {
     firstPlay: state.playsMadeThisStage === 0,
     zhaoyunUsed: state.zhaoyunUsedThisStage,
+    warSuit: state.warSuit,
   };
 }
 function updatePreview() {
   const cards = getSelectedCards();
   const prev = $('preview');
   if (!cards.length) {
-    prev.innerHTML = '点选手牌看预估得分<span class="muted">底分 × 倍率 = 本回合得分 · 凑够目标即过关</span>';
+    const war = FACTION_NAME[state.warSuit] || '—';
+    prev.innerHTML = `点选手牌看预估<span class="muted">牌型底分 + 牌面点数 [+宣战] = 底分，再 × 倍率 · 宣战：${war}</span>`;
     return;
   }
   const ev = evaluateHand(cards);
@@ -695,7 +775,10 @@ function updatePreview() {
   if (st.boss && ev.pri < st.boss.minPri) {
     warn = `<span class="muted" style="color:#f0b0b0">虎牢关：此牌型本回合得 0 分</span>`;
   }
-  prev.innerHTML = `<span class="ptype">${ev.displayName}</span><br/><span class="eq">${scored.base} × ${scored.mult} = ${scored.score}</span>${note}${warn}`;
+  const warPart = scored.warBonus ? ` + 宣战${scored.warBonus}` : '';
+  prev.innerHTML = `<span class="ptype">${ev.displayName}</span><br/>`
+    + `<span class="muted">牌型${scored.typeBase} + 牌面${scored.rankChips}${warPart} = 底分 ${scored.base}</span><br/>`
+    + `<span class="eq">${scored.base} × ${scored.mult} = ${scored.score}</span>${note}${warn}`;
 }
 
 function getSelectedCards() {
@@ -731,6 +814,10 @@ function startStage() {
   state.gazeUsed = false;
   state.playsMadeThisStage = 0;
   state.zhaoyunUsedThisStage = false;
+  state.warSuitPlayed = false;
+  state.warLocked = false;
+  // 默认随机一门宣战（可再点选）
+  state.warSuit = SUITS[Math.floor(Math.random() * SUITS.length)].id;
   state.phase = 'play';
   drawToHand();
   ensurePlayableHand();
@@ -739,7 +826,7 @@ function startStage() {
   const handEl = $('hand'); if (handEl) delete handEl.dataset.inited;
   renderAll();
   $('float-score').textContent = '';
-  $('log').textContent = '摸牌完毕 · 看上方预估再出牌';
+  $('log').textContent = '先确认宣战花色，再出牌';
   maybeShowTutorialOrBossTip();
 }
 
@@ -767,6 +854,7 @@ function ensurePlayableHand() {
 
 function renderAll() {
   renderHUD();
+  renderWarBar();
   renderJokers();
   renderHand();
 }
@@ -776,9 +864,50 @@ function showScreen(id) {
   $(id).classList.add('active');
 }
 function hideOverlays() {
-  ['shop','gaze','result','tutorial','boss-tip'].forEach(id => {
+  ['shop','gaze','result','tutorial','boss-tip','war-pick'].forEach(id => {
     const n = $(id); if (n) n.classList.remove('active');
   });
+}
+function renderWarBar() {
+  const bar = $('war-bar');
+  if (!bar) return;
+  bar.querySelectorAll('.war-btn').forEach(btn => {
+    const suit = btn.dataset.suit;
+    btn.classList.toggle('active', suit === state.warSuit);
+    btn.disabled = state.warLocked;
+  });
+  const note = $('war-note');
+  if (note) {
+    const name = FACTION_NAME[state.warSuit];
+    note.textContent = state.warLocked
+      ? `宣战锁定：${name}（每张+4）` + (state.warSuitPlayed ? ' · 已打出' : ' · 尚未打出')
+      : `宣战 ${name}：该色每张+4 底分；本关未打出则铜钱减半（出牌前可改）`;
+  }
+}
+function setWarSuit(suit) {
+  if (state.warLocked) { toast('本关宣战已锁定'); return; }
+  state.warSuit = suit;
+  renderWarBar();
+  updatePreview();
+}
+function showWarPick() {
+  const grid = $('war-pick-grid');
+  if (grid) {
+    grid.querySelectorAll('.war-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.suit === state.warSuit);
+      btn.onclick = () => {
+        setWarSuit(btn.dataset.suit);
+        grid.querySelectorAll('.war-btn').forEach(b => b.classList.toggle('active', b.dataset.suit === state.warSuit));
+      };
+    });
+  }
+  $('war-pick').classList.add('active');
+}
+function dismissWarPick() {
+  $('war-pick').classList.remove('active');
+  renderWarBar();
+  updatePreview();
+  toast('宣战「' + FACTION_NAME[state.warSuit] + '」');
 }
 
 // ========== Tutorial ==========
@@ -807,13 +936,16 @@ function finishTutorial() {
 }
 function maybeShowBossTip() {
   const st = STAGES[state.stageIdx];
-  if (!st.boss) return;
-  if (localStorage.getItem(LS_BOSS) === '1') return;
-  $('boss-tip').classList.add('active');
+  if (st.boss && localStorage.getItem(LS_BOSS) !== '1') {
+    $('boss-tip').classList.add('active');
+    return;
+  }
+  showWarPick();
 }
 function dismissBossTip() {
   localStorage.setItem(LS_BOSS, '1');
   $('boss-tip').classList.remove('active');
+  showWarPick();
 }
 
 function playHand() {
@@ -834,10 +966,13 @@ function playHand() {
     note = (note ? note + ' · ' : '') + '虎牢关：高牌不计分';
   }
 
-  // 消耗赵云本关首出
   if (scored.notes.some(n => n.includes('赵云'))) {
     state.zhaoyunUsedThisStage = true;
   }
+  if (cards.some(c => c.suit === state.warSuit)) {
+    state.warSuitPlayed = true;
+  }
+  state.warLocked = true;
   state.score += finalScore;
   state.playsLeft--;
   state.playsMadeThisStage++;
@@ -855,7 +990,9 @@ function playHand() {
   }
 
   const float = $('float-score');
-  float.textContent = `${scored.base} × ${scored.mult} = ${finalScore}`;
+  float.textContent = `${scored.typeBase}+${scored.rankChips}`
+    + (scored.warBonus ? `+${scored.warBonus}` : '')
+    + `=${scored.base} × ${scored.mult} = ${finalScore}`;
   float.style.animation = 'none';
   void float.offsetWidth;
   float.style.animation = '';
@@ -900,10 +1037,16 @@ function checkStageEnd() {
   if (state.score >= st.target) {
     // Win stage
     state.phase = 'result';
-    state.coins += st.reward;
+    let reward = st.reward;
+    let warMsg = '';
+    if (!state.warSuitPlayed) {
+      reward = Math.floor(st.reward * 0.5);
+      warMsg = `（未打出宣战「${FACTION_NAME[state.warSuit]}」，铜钱减半）`;
+    }
+    state.coins += reward;
     setTimeout(() => {
       $('result-title').textContent = '破关！';
-      $('result-msg').textContent = `${st.name} 达成 ${state.score}/${st.target}，获得铜钱 ${st.reward}`;
+      $('result-msg').textContent = `${st.name} 达成 ${state.score}/${st.target}，获得铜钱 ${reward}${warMsg}`;
       $('result').classList.add('active');
       $('btn-result').onclick = () => {
         $('result').classList.remove('active');
@@ -954,6 +1097,9 @@ function resetRun() {
   state.jokerSlots = 2;
   state.playsMadeThisStage = 0;
   state.zhaoyunUsedThisStage = false;
+  state.warSuit = 'shu';
+  state.warSuitPlayed = false;
+  state.warLocked = false;
   state.selected.clear();
   state.phase = 'title';
 }
@@ -1098,6 +1244,10 @@ $('btn-tut-next').onclick = () => {
 };
 $('btn-tut-skip').onclick = finishTutorial;
 $('btn-boss-tip-ok').onclick = dismissBossTip;
+$('btn-war-ok').onclick = dismissWarPick;
+document.querySelectorAll('#war-bar .war-btn').forEach(btn => {
+  btn.addEventListener('click', () => setWarSuit(btn.dataset.suit));
+});
 
 // Expose for console verification
 window.SGBalatro = {
