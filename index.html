@@ -130,7 +130,7 @@ body {
 
 /* Hand */
 .hand {
-  display: flex; justify-content: safe center; align-items: flex-end;
+  display: flex; justify-content: flex-start; align-items: flex-end;
   gap: 3px; padding: 8px 8px 4px; min-height: 118px; flex-shrink: 0;
   overflow-x: auto; overflow-y: visible; position: relative; z-index: 5;
   width: 100%; -webkit-overflow-scrolling: touch;
@@ -575,10 +575,8 @@ function renderHand() {
   // Keep hand scroll within bounds (prevent negative overflow clipping clicks)
   requestAnimationFrame(() => {
     const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
-    if (el.scrollLeft > maxScroll) el.scrollLeft = maxScroll;
-    if (el.scrollLeft < 0) el.scrollLeft = 0;
-    // If content wider, start near center
-    if (maxScroll > 0 && el.dataset.inited !== '1') {
+    el.scrollLeft = Math.min(Math.max(0, el.scrollLeft), maxScroll);
+    if (el.dataset.inited !== '1') {
       el.scrollLeft = maxScroll / 2;
       el.dataset.inited = '1';
     }
