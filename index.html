@@ -130,12 +130,14 @@ body {
 
 /* Hand */
 .hand {
-  display: flex; justify-content: center; align-items: flex-end;
-  gap: 4px; padding: 8px 2px 4px; min-height: 118px; flex-shrink: 0;
-  overflow-x: auto; position: relative; z-index: 5;
+  display: flex; justify-content: safe center; align-items: flex-end;
+  gap: 3px; padding: 8px 8px 4px; min-height: 118px; flex-shrink: 0;
+  overflow-x: auto; overflow-y: visible; position: relative; z-index: 5;
+  width: 100%; -webkit-overflow-scrolling: touch;
 }
+.hand::-webkit-scrollbar { height: 0; }
 .card {
-  width: 56px; height: 84px; border-radius: 6px; flex-shrink: 0;
+  width: 48px; height: 76px; border-radius: 6px; flex-shrink: 0;
   background: linear-gradient(165deg, #f7ecd2, #e8d5a8);
   color: var(--ink); border: 1.5px solid #c4a86a;
   box-shadow: 0 3px 8px rgba(0,0,0,.4);
@@ -154,7 +156,7 @@ body {
 .card .corner .suit-dot { display: block; font-size: .55rem; opacity: .85; }
 .card .char {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 1.75rem; font-weight: 700; margin-top: 8px;
+  font-size: 1.55rem; font-weight: 700; margin-top: 8px;
 }
 .card.s-wei .corner { color: var(--wei); }
 .card.s-shu .corner { color: var(--shu); }
@@ -570,6 +572,17 @@ function renderHand() {
     div.addEventListener('click', () => toggleSelect(c.id));
     el.appendChild(div);
   }
+  // Keep hand scroll within bounds (prevent negative overflow clipping clicks)
+  requestAnimationFrame(() => {
+    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+    if (el.scrollLeft > maxScroll) el.scrollLeft = maxScroll;
+    if (el.scrollLeft < 0) el.scrollLeft = 0;
+    // If content wider, start near center
+    if (maxScroll > 0 && el.dataset.inited !== '1') {
+      el.scrollLeft = maxScroll / 2;
+      el.dataset.inited = '1';
+    }
+  });
   updatePreview();
 }
 
@@ -622,6 +635,7 @@ function startStage() {
   ensurePlayableHand();
   showScreen('game');
   hideOverlays();
+  const handEl = $('hand'); if (handEl) delete handEl.dataset.inited;
   renderAll();
   $('float-score').textContent = '';
   $('log').textContent = '摸牌完毕，选择牌型出牌';
