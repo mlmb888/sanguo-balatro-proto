@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>三国小丑牌 · 试玩</title>
-<meta name="sg-proto-v" content="2" />
+<meta name="sg-proto-v" content="2.1" />
 <style>
 :root {
   --bg: #1a1410;
@@ -1101,7 +1101,7 @@ $('btn-boss-tip-ok').onclick = dismissBossTip;
 
 // Expose for console verification
 window.SGBalatro = {
-  evaluateHand, applyJokers, detectCombo, buildDeck, GENERALS, HAND_TYPES, state,
+  evaluateHand, applyJokers, detectCombo, buildDeck, GENERALS, HAND_TYPES, state, startStage,
   test() {
     const sample = [
       { suit:'shu', rank:10, char:'关' },
