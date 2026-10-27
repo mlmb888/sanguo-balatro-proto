@@ -1,6 +1,7 @@
 import {
-  evaluateHand, applyJokers, detectCombos, STAGES, GENERALS,
-} from './scoring.mjs';
+  makeUnit, calcPower, emptyBoard, spawnInto, tryMerge, effectivePower,
+  STAGES, SLOT_COUNT, resetUid, UNIT_STATS, basicMergePick,
+} from './merge-logic.mjs';
 
 let pass = 0, fail = 0;
 function assert(cond, msg) {
@@ -8,94 +9,105 @@ function assert(cond, msg) {
   else { fail++; console.error('✗', msg); }
 }
 
+resetUid(1);
+
 {
-  const cards = [{ suit: 'wei', rank: 14, char: '兵' }, { suit: 'shu', rank: 10, char: '卒' }];
-  const ev = evaluateHand(cards);
-  assert(ev.type.id === 'scatter', '散兵');
-  assert(applyJokers(ev, cards, [], {}).score === 24, '散兵得分');
+  const b = emptyBoard();
+  assert(b.length === SLOT_COUNT && b.every(x => x === null), '空棋盘12格');
 }
 
 {
-  const cards = [
-    { suit: 'shu', rank: 5, char: '兵' },
-    { suit: 'shu', rank: 8, char: '卒' },
-    { suit: 'shu', rank: 12, char: '将' },
-  ];
-  const ev = evaluateHand(cards);
-  assert(ev.type.id === 'formation' && ev.mult === 2, '同阵×2');
-  assert(applyJokers(ev, cards, [], {}).score === 100, '同阵得分100');
+  const a = makeUnit('兵');
+  const b = makeUnit('兵');
+  const slots = emptyBoard();
+  slots[0] = a; slots[1] = b;
+  const r = tryMerge(slots, 0, 1);
+  assert(r.ok && r.kind === 'tier' && r.result.name === '锐', '兵+兵→锐');
+  assert(r.slots[0] === null && r.slots[1].name === '锐', '结果在目标格');
 }
 
 {
-  const cards = [2,3,5,8,10].map((r,i) => ({ suit:'wei', rank:r, char:['兵','卒','将','骑','弓'][i] }));
-  assert(evaluateHand(cards).isVolley && evaluateHand(cards).mult === 3, '齐射×3');
+  const slots = emptyBoard();
+  slots[0] = makeUnit('锐'); slots[1] = makeUnit('锐');
+  assert(tryMerge(slots, 0, 1).result.name === '将', '锐+锐→将');
 }
 
 {
-  const cards = [
-    { suit: 'shu', rank: 10, char: '关' },
-    { suit: 'wei', rank: 8, char: '羽' },
-  ];
-  const ev = evaluateHand(cards);
-  assert(ev.type.id === 'combo', '组将');
-  assert(ev.mult === 6, '组将暴击 3×2=6 got=' + ev.mult);
-  assert(applyJokers(ev, cards, [], {}).score === (50 + 18) * 6, '组将暴击得分');
+  const slots = emptyBoard();
+  slots[0] = makeUnit('将'); slots[1] = makeUnit('将');
+  assert(!tryMerge(slots, 0, 1).ok, '将已满阶不可再升');
 }
 
 {
-  const cards = [
-    { suit: 'shu', rank: 10, char: '关' },
-    { suit: 'shu', rank: 8, char: '羽' },
-    { suit: 'shu', rank: 5, char: '兵' },
-  ];
-  const ev = evaluateHand(cards);
-  assert(ev.mult === 8, '组将+同阵暴击 (3+1)×2=8 got=' + ev.mult);
+  const slots = emptyBoard();
+  slots[2] = makeUnit('关'); slots[5] = makeUnit('羽');
+  const r = tryMerge(slots, 2, 5);
+  assert(r.ok && r.kind === 'spell' && r.result.name === '关羽', '关+羽→关羽');
+  assert(r.result.kind === 'hero' && r.result.mult === 2, '关羽带倍率');
 }
 
 {
-  const cards = [
-    { suit: 'shu', rank: 10, char: '关' },
-    { suit: 'shu', rank: 9, char: '羽' },
-    { suit: 'shu', rank: 8, char: '张' },
-    { suit: 'wei', rank: 7, char: '飞' },
-  ];
-  const ev = evaluateHand(cards);
-  assert(ev.type.id === 'double_combo', '连名');
-  // (3+1)*2连名*2暴击 = 16
-  assert(ev.mult === 16, '连名+暴击 got=' + ev.mult);
+  const slots = emptyBoard();
+  slots[0] = makeUnit('诸'); slots[1] = makeUnit('葛');
+  let r = tryMerge(slots, 0, 1);
+  assert(r.result.name === '诸葛', '诸+葛→诸葛');
+  slots[0] = null; slots[1] = r.result; slots[2] = makeUnit('亮');
+  r = tryMerge(slots, 2, 1);
+  assert(r.result.name === '诸葛亮' && r.result.mult === 3, '诸葛+亮→诸葛亮');
 }
 
 {
-  // 连营：上一手已有 structureStreak=1，本手同阵 → 连营×2 → +2
-  const cards = [
-    { suit: 'wei', rank: 5, char: '兵' },
-    { suit: 'wei', rank: 8, char: '卒' },
-    { suit: 'wei', rank: 12, char: '将' },
-  ];
-  const ev = evaluateHand(cards);
-  const sc = applyJokers(ev, cards, [], { structureStreak: 1 });
-  assert(sc.lianying === 2 && sc.mult === 4, '连营×2 倍率+2 got mult=' + sc.mult + ' ly=' + sc.lianying);
+  const slots = emptyBoard();
+  slots[0] = makeUnit('关羽', 1);
+  slots[1] = makeUnit('关羽', 1);
+  const r = tryMerge(slots, 0, 1);
+  assert(r.ok && r.kind === 'star' && r.result.star === 2, '关羽升星');
+  assert(r.result.base > UNIT_STATS['关羽'].base, '升星底分提升');
 }
 
 {
-  const cards = [
-    { suit: 'shu', rank: 10, char: '关' },
-    { suit: 'wei', rank: 8, char: '羽' },
-  ];
-  const ev = evaluateHand(cards);
-  const sc = applyJokers(ev, cards, [], { ownedReplay: true });
-  assert(sc.mult === 8, '再组将+2 got=' + sc.mult); // 6+2
+  const slots = emptyBoard();
+  slots[0] = makeUnit('关羽'); // base28 mult2
+  slots[1] = makeUnit('兵'); // base3
+  const p = calcPower(slots);
+  assert(p.baseSum === 31 && p.mult === 2 && p.power === 62, '战力=底分×倍率 got ' + JSON.stringify(p));
 }
 
 {
-  const boss = STAGES.find(s => s.id === 'hlg');
-  assert(boss?.boss?.requireStructure, 'Boss requireStructure');
-  assert(!/对子/.test(boss.boss.text), '无对子');
-  assert(STAGES[0].target === 300, 'v0.6 目标略降');
+  const stage = STAGES.find(s => s.id === 'hlg');
+  const slots = emptyBoard();
+  slots[0] = makeUnit('将');
+  const blocked = effectivePower(slots, stage);
+  assert(blocked.blocked && blocked.power === 0, 'Boss无武将战力0');
+  slots[1] = makeUnit('张飞');
+  const ok = effectivePower(slots, stage);
+  assert(!ok.blocked && ok.power > 0, 'Boss有武将计分');
 }
 
 {
-  assert(GENERALS.guanyu.chars.join('') === '关羽', '关羽');
+  let slots = emptyBoard();
+  const rng = () => 0.1;
+  const s1 = spawnInto(slots, rng);
+  assert(s1.spawned && s1.index >= 0, '抽字入空位');
+  // fill almost
+  slots = s1.slots;
+  for (let k = 0; k < 20; k++) {
+    const s = spawnInto(slots, Math.random);
+    if (s.index < 0) break;
+    slots = s.slots;
+  }
+  assert(slots.filter(Boolean).length <= SLOT_COUNT, '不超过格数');
+}
+
+{
+  const slots = emptyBoard();
+  slots[0] = makeUnit('关'); slots[1] = makeUnit('羽'); slots[2] = makeUnit('兵'); slots[3] = makeUnit('兵');
+  const pick = basicMergePick(slots);
+  assert(pick && pick.r.kind === 'spell', 'AI优先拼字');
+}
+
+{
+  assert(STAGES.length === 3 && STAGES[0].target < STAGES[2].target, '三关递进');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

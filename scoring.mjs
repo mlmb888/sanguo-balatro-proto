@@ -1,3 +1,4 @@
+/** legacy v0.5–0.6 poker/组将 scoring — unused in v0.7; see merge-logic.mjs */
 /** v0.6 scoring — shared by tests & sim */
 const HAND_TYPES = [
   { id: 'double_combo', name: '连名', typeBase: 50, mult: 3, pri: 4 },
