@@ -5,6 +5,11 @@ https://mlmb888.github.io/sanguo-balatro-proto/?v=4
 
 请用 `?v=4`；仍旧版请强刷。教程 key：`sg_balatro_tut_v4`。
 
+若 github.io 构建延迟，可用备用：
+- https://raw.githack.com/mlmb888/sanguo-balatro-proto/master/index.html?v=4
+- https://cdn.jsdelivr.net/gh/mlmb888/sanguo-balatro-proto@4a5512fc08191148c081e80d8bb03c82e2b4dc71/index.html?v=4
+
+
 本地：`/workspace/sanguo-balatro-proto/`（`node sim.mjs 50` 可复现平衡）
 
 ## 最终目标分（由模拟标定）
