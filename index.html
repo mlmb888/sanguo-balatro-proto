@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>三国小丑牌 · 试玩</title>
+<style>
+:root {
+  --bg: #1a1410;
+  --paper: #f3e6c8;
+  --ink: #2a1f14;
+  --red: #a33;
+  --gold: #c9a227;
+  --wei: #3a5a9a;
+  --shu: #9a3a3a;
+  --wu: #3a7a4a;
+  --qun: #6a5a3a;
+  --panel: rgba(243,230,200,.08);
+  --border: rgba(201,162,39,.35);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--paper);
+  font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+body {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background:
+    radial-gradient(ellipse at 50% 0%, #2a2218 0%, #1a1410 55%, #0e0a08 100%);
+}
+#app {
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: env(safe-area-inset-top) 10px env(safe-area-inset-bottom);
+}
+.ink-wash {
+  position: absolute; inset: 0; pointer-events: none; opacity: .12;
+  background:
+    radial-gradient(circle at 20% 30%, #000 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, #000 0%, transparent 35%);
+}
+/* Screens */
+.screen { display: none; flex-direction: column; flex: 1; min-height: 0; z-index: 1; }
+.screen.active { display: flex; }
+
+/* Title */
+#title {
+  justify-content: center; align-items: center; text-align: center; gap: 16px; padding: 24px;
+}
+#title h1 {
+  font-size: 2.2rem; letter-spacing: .2em; color: var(--gold);
+  text-shadow: 0 2px 0 #000, 0 0 24px rgba(201,162,39,.4);
+}
+#title .sub { opacity: .7; font-size: .9rem; line-height: 1.6; max-width: 280px; }
+.btn {
+  appearance: none; border: 1px solid var(--gold); background: linear-gradient(180deg, #3a2e1a, #241a10);
+  color: var(--paper); padding: 12px 28px; border-radius: 8px; font-size: 1rem;
+  letter-spacing: .15em; cursor: pointer; transition: transform .1s, box-shadow .15s;
+}
+.btn:active { transform: scale(.97); }
+.btn.primary { background: linear-gradient(180deg, #6a4a1a, #3a2810); box-shadow: 0 0 16px rgba(201,162,39,.25); }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.btn.ghost { background: transparent; border-color: rgba(243,230,200,.3); }
+.btn.small { padding: 8px 14px; font-size: .85rem; letter-spacing: .08em; }
+
+/* HUD */
+.hud {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px;
+  padding: 10px 4px 8px; font-size: .78rem; flex-shrink: 0;
+}
+.hud .full { grid-column: 1 / -1; }
+.stat {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;
+}
+.stat .label { opacity: .6; }
+.stat .val { color: var(--gold); font-weight: 600; }
+.stat.warn .val { color: #e07070; }
+.boss-rule {
+  background: rgba(154,58,58,.2); border: 1px solid rgba(154,58,58,.5);
+  border-radius: 8px; padding: 6px 10px; font-size: .75rem; color: #f0b0b0;
+  margin: 0 4px 6px; flex-shrink: 0;
+}
+
+/* Jokers */
+.jokers {
+  display: flex; gap: 8px; padding: 4px; min-height: 64px; flex-shrink: 0; overflow-x: auto;
+}
+.joker {
+  flex: 0 0 auto; width: 72px; height: 56px; border-radius: 8px;
+  border: 1px solid var(--border); background: linear-gradient(160deg, #2a2218, #1a1410);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: .72rem; text-align: center; padding: 4px;
+}
+.joker .name { color: var(--gold); font-weight: 600; font-size: .8rem; }
+.joker .desc { opacity: .55; font-size: .58rem; line-height: 1.2; margin-top: 2px; }
+.joker.empty { opacity: .35; border-style: dashed; }
+
+/* Score float */
+.score-area {
+  flex: 1; min-height: 80px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; position: relative; padding: 8px;
+}
+.hand-preview {
+  font-size: .85rem; opacity: .85; min-height: 1.4em; text-align: center;
+}
+.hand-preview .ptype { color: var(--gold); font-weight: 600; }
+.float-score {
+  font-size: 1.6rem; font-weight: 700; color: var(--gold);
+  text-shadow: 0 0 20px rgba(201,162,39,.5);
+  animation: pop .5s ease; min-height: 1.5em;
+}
+@keyframes pop {
+  0% { transform: scale(.6); opacity: 0; }
+  40% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.log-line { font-size: .7rem; opacity: .5; margin-top: 4px; text-align: center; max-width: 95%; }
+
+/* Hand */
+.hand {
+  display: flex; justify-content: center; align-items: flex-end;
+  gap: 4px; padding: 8px 2px 4px; min-height: 118px; flex-shrink: 0;
+  overflow-x: auto;
+}
+.card {
+  width: 56px; height: 84px; border-radius: 6px; flex-shrink: 0;
+  background: linear-gradient(165deg, #f7ecd2, #e8d5a8);
+  color: var(--ink); border: 1.5px solid #c4a86a;
+  box-shadow: 0 3px 8px rgba(0,0,0,.4);
+  display: flex; flex-direction: column; position: relative;
+  cursor: pointer; transition: transform .12s, box-shadow .12s;
+  font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
+}
+.card.selected {
+  transform: translateY(-16px);
+  box-shadow: 0 8px 16px rgba(201,162,39,.45), 0 0 0 2px var(--gold);
+}
+.card .corner {
+  position: absolute; top: 3px; left: 4px; font-size: .62rem; line-height: 1.1;
+  font-weight: 700; font-family: "PingFang SC", sans-serif;
+}
+.card .corner .suit-dot { display: block; font-size: .55rem; opacity: .85; }
+.card .char {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 1.75rem; font-weight: 700; margin-top: 8px;
+}
+.card.s-wei .corner { color: var(--wei); }
+.card.s-shu .corner { color: var(--shu); }
+.card.s-wu .corner { color: var(--wu); }
+.card.s-qun .corner { color: var(--qun); }
+.card.s-wei { border-color: #7a9acc; }
+.card.s-shu { border-color: #cc7a7a; }
+.card.s-wu { border-color: #7acc8a; }
+.card.s-qun { border-color: #bba86a; }
+
+/* Actions */
+.actions {
+  display: flex; gap: 8px; padding: 8px 4px 12px; flex-shrink: 0; justify-content: center; flex-wrap: wrap;
+}
+.hint {
+  text-align: center; font-size: .7rem; opacity: .45; padding-bottom: 6px; flex-shrink: 0;
+}
+
+/* Overlays */
+.overlay {
+  position: absolute; inset: 0; background: rgba(10,8,6,.88);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 20; padding: 24px; text-align: center; gap: 12px;
+}
+.overlay.active { display: flex; }
+.overlay h2 { color: var(--gold); font-size: 1.6rem; letter-spacing: .2em; }
+.overlay p { opacity: .8; font-size: .9rem; line-height: 1.5; max-width: 300px; }
+.shop-opts { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; }
+.shop-opt {
+  border: 1px solid var(--border); background: var(--panel); border-radius: 10px;
+  padding: 12px; text-align: left; cursor: pointer; color: var(--paper);
+}
+.shop-opt:hover, .shop-opt:active { border-color: var(--gold); }
+.shop-opt .price { color: var(--gold); font-size: .8rem; }
+.shop-opt.disabled { opacity: .4; pointer-events: none; }
+
+.gaze-cards { display: flex; gap: 8px; justify-content: center; margin: 12px 0; flex-wrap: wrap; }
+.gaze-cards .card { cursor: default; }
+.toast {
+  position: absolute; top: 20%; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,.85); color: var(--gold); padding: 10px 18px;
+  border-radius: 8px; border: 1px solid var(--border); z-index: 30;
+  font-size: .9rem; display: none; white-space: nowrap; max-width: 90%;
+}
+.toast.show { display: block; animation: fadeup 1.8s ease forwards; }
+@keyframes fadeup {
+  0% { opacity: 0; transform: translate(-50%, 8px); }
+  15% { opacity: 1; transform: translate(-50%, 0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="ink-wash"></div>
+
+  <!-- Title -->
+  <div id="title" class="screen active">
+    <h1>三国小丑牌</h1>
+    <div class="sub">武将即小丑 · 战役盲注 · 汉字组名<br/>底分 × 倍率 · 非文字塔防</div>
+    <button class="btn primary" id="btn-start">开 始 试 玩</button>
+    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · 黄巾之乱 · 竖屏 H5 原型</div>
+  </div>
+
+  <!-- Game -->
+  <div id="game" class="screen">
+    <div class="hud">
+      <div class="stat full"><span class="label" id="stage-name">黄巾 · 小关1</span><span class="val" id="coins">铜钱 0</span></div>
+      <div class="stat"><span class="label">目标</span><span class="val" id="target">50</span></div>
+      <div class="stat"><span class="label">得分</span><span class="val" id="score">0</span></div>
+      <div class="stat warn"><span class="label">气势</span><span class="val" id="lives">♥♥♥</span></div>
+      <div class="stat"><span class="label">出牌</span><span class="val" id="plays">4</span></div>
+      <div class="stat"><span class="label">弃牌</span><span class="val" id="discards">3</span></div>
+    </div>
+    <div id="boss-rule" class="boss-rule" style="display:none"></div>
+    <div class="jokers" id="jokers"></div>
+    <div class="score-area">
+      <div class="hand-preview" id="preview">点选手牌（最多5张）</div>
+      <div class="float-score" id="float-score"></div>
+      <div class="log-line" id="log"></div>
+    </div>
+    <div class="hand" id="hand"></div>
+    <div class="actions">
+      <button class="btn primary" id="btn-play">出 牌</button>
+      <button class="btn" id="btn-discard">弃 牌</button>
+      <button class="btn ghost" id="btn-gaze" style="display:none">观 星</button>
+    </div>
+    <div class="hint">选牌高亮上浮 · 组「关羽」「张飞」「赵云」「诸葛亮」触发组将</div>
+  </div>
+
+  <!-- Shop -->
+  <div id="shop" class="overlay">
+    <h2>关间商店</h2>
+    <p id="shop-msg">破关！花费铜钱强化构筑</p>
+    <div class="shop-opts" id="shop-opts"></div>
+    <button class="btn primary" id="btn-shop-next" style="margin-top:8px">下一关</button>
+  </div>
+
+  <!-- Gaze -->
+  <div id="gaze" class="overlay">
+    <h2>观星</h2>
+    <p>牌库顶三张（诸葛亮·每关一次）</p>
+    <div class="gaze-cards" id="gaze-cards"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <button class="btn small" id="btn-gaze-keep">保持顺序放回</button>
+      <button class="btn small" id="btn-gaze-shuffle">洗乱放回</button>
+      <button class="btn small ghost" id="btn-gaze-close">关闭</button>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="result" class="overlay">
+    <h2 id="result-title">过关</h2>
+    <p id="result-msg"></p>
+    <button class="btn primary" id="btn-result">继续</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+// ========== Constants ==========
+const SUITS = [
+  { id: 'wei', name: '魏', cls: 's-wei' },
+  { id: 'shu', name: '蜀', cls: 's-shu' },
+  { id: 'wu',  name: '吴', cls: 's-wu' },
+  { id: 'qun', name: '群', cls: 's-qun' },
+];
+const RANK_LABEL = { 11:'J', 12:'Q', 13:'K', 14:'A' };
+const HAND_LIMIT = 8;
+const MAX_SELECT = 5;
+
+const HAND_TYPES = [
+  { id: 'straight_flush', name: '同花顺', base: 100, mult: 8, pri: 10 },
+  { id: 'four', name: '金刚', base: 60, mult: 7, pri: 9 },
+  { id: 'fullhouse', name: '葫芦', base: 40, mult: 4, pri: 8 },
+  { id: 'combo', name: '组将', base: 40, mult: 4, pri: 7 },
+  { id: 'flush', name: '同花', base: 35, mult: 4, pri: 6 },
+  { id: 'straight', name: '顺子', base: 30, mult: 4, pri: 5 },
+  { id: 'three', name: '三条', base: 30, mult: 3, pri: 4 },
+  { id: 'twopair', name: '两对', base: 20, mult: 2, pri: 3 },
+  { id: 'pair', name: '对子', base: 10, mult: 2, pri: 2 },
+  { id: 'high', name: '高牌', base: 5, mult: 1, pri: 1 },
+];
+
+const GENERALS = {
+  guanyu:   { id: 'guanyu', name: '关羽', chars: ['关','羽'], desc: '含蜀色 倍率+8；蜀同花再+4' },
+  zhangfei: { id: 'zhangfei', name: '张飞', chars: ['张','飞'], desc: '三条及以上 底分×1.5' },
+  zhaoyun:  { id: 'zhaoyun', name: '赵云', chars: ['赵','云'], desc: '出牌≤2张 倍率+12' },
+  zhuge:    { id: 'zhuge', name: '诸葛亮', chars: ['诸','葛','亮'], desc: '每关一次「观星」' },
+  liubei:   { id: 'liubei', name: '刘备', chars: ['刘','备'], desc: '（未实装效果）' },
+  caocao:   { id: 'caocao', name: '曹操', chars: ['曹','操'], desc: '（未实装效果）' },
+  zhouyu:   { id: 'zhouyu', name: '周瑜', chars: ['周','瑜'], desc: '（未实装效果）' },
+  lvbu:     { id: 'lvbu', name: '吕布', chars: ['吕','布'], desc: '（未实装效果）' },
+};
+
+const STAGES = [
+  { id: 'hj1', name: '黄巾 · 小关1', target: 50, plays: 4, discards: 3, boss: null, reward: 8 },
+  { id: 'hj2', name: '黄巾 · 小关2', target: 100, plays: 4, discards: 3, boss: null, reward: 12 },
+  { id: 'hlg', name: 'Boss · 虎牢关', target: 150, plays: 4, discards: 3,
+    boss: { text: '虎牢关：牌型须为对子及以上，否则本回合得分 0', minPri: 2 }, reward: 20 },
+];
+
+// Char pool for deck construction — ensure generals' chars appear enough
+const NAME_CHARS = ['关','羽','张','飞','赵','云','诸','葛','亮','刘','备','曹','操','周','瑜','吕','布'];
+const FILL_CHARS = ['兵','卒','将','士','马','弓','戟','盾','火','计','阵','令','鼓','旗','刀','枪','骑','弩','城','营'];
+
+// ========== Utils ==========
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function rankLabel(r) { return RANK_LABEL[r] || String(r); }
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+function $(id) { return document.getElementById(id); }
+
+// ========== Deck ==========
+function buildDeck() {
+  const cards = [];
+  let uid = 0;
+  const guaranteed = [];
+  for (const ch of NAME_CHARS) {
+    guaranteed.push(ch, ch);
+  }
+  while (guaranteed.length < 52) {
+    guaranteed.push(FILL_CHARS[guaranteed.length % FILL_CHARS.length]);
+  }
+  shuffle(guaranteed);
+  let ranks = [2,3,4,5,6,7,8,9,10,11,12,13,14];
+  // Shop: 剔除羸兵 — bias toward higher ranks
+  const removeLow = state._removeLow || 0;
+  if (removeLow > 0) {
+    const cut = Math.min(4, removeLow * 2);
+    ranks = ranks.slice(cut); // drop 2/3/... 
+    while (ranks.length < 13) ranks.push(10,11,12,13,14);
+    ranks = ranks.slice(0, 13);
+  }
+  for (let i = 0; i < 52; i++) {
+    const suit = SUITS[i % 4];
+    const rank = ranks[Math.floor(i / 4) % ranks.length];
+    cards.push({
+      id: 'c' + (uid++),
+      suit: suit.id,
+      suitName: suit.name,
+      suitCls: suit.cls,
+      rank,
+      char: guaranteed[i],
+    });
+  }
+  return shuffle(cards);
+}
+
+// ========== Hand evaluation ==========
+function rankCounts(cards) {
+  const m = {};
+  for (const c of cards) m[c.rank] = (m[c.rank] || 0) + 1;
+  return Object.values(m).sort((a,b) => b - a);
+}
+function isFlush(cards) {
+  if (cards.length < 5) return false;
+  const s = cards[0].suit;
+  return cards.every(c => c.suit === s);
+}
+function isStraight(cards) {
+  if (cards.length !== 5) return false;
+  const ranks = [...new Set(cards.map(c => c.rank))].sort((a,b) => a - b);
+  if (ranks.length !== 5) return false;
+  // A-2-3-4-5 wheel
+  if (ranks[0] === 2 && ranks[1] === 3 && ranks[2] === 4 && ranks[3] === 5 && ranks[4] === 14) return true;
+  return ranks[4] - ranks[0] === 4;
+}
+function detectCombo(cards) {
+  const chars = new Set(cards.map(c => c.char));
+  // Prefer longer names / check all implemented
+  const order = ['zhuge','guanyu','zhangfei','zhaoyun','liubei','caocao','zhouyu','lvbu'];
+  for (const id of order) {
+    const g = GENERALS[id];
+    if (g.chars.every(ch => chars.has(ch))) return g;
+  }
+  return null;
+}
+
+function evaluateHand(cards) {
+  if (!cards.length) return null;
+  const counts = rankCounts(cards);
+  const flush = isFlush(cards);
+  const straight = isStraight(cards);
+  const combo = detectCombo(cards);
+  let best = null;
+
+  function consider(id, extraName) {
+    const t = HAND_TYPES.find(h => h.id === id);
+    const cand = { ...t, comboName: extraName || null, comboGeneral: combo && id === 'combo' ? combo : null };
+    if (!best || cand.pri > best.pri) best = cand;
+  }
+
+  if (flush && straight) consider('straight_flush');
+  if (counts[0] === 4) consider('four');
+  if (counts[0] === 3 && counts[1] === 2) consider('fullhouse');
+  if (combo) consider('combo', '组将·' + combo.name);
+  if (flush) consider('flush');
+  if (straight) consider('straight');
+  if (counts[0] === 3) consider('three');
+  if (counts[0] === 2 && counts[1] === 2) consider('twopair');
+  if (counts[0] === 2) consider('pair');
+  consider('high');
+
+  // Chip contribution from ranks (Balatro-ish: add rank values to base)
+  const chipBonus = cards.reduce((s, c) => s + Math.min(c.rank, 10) + (c.rank === 14 ? 1 : 0), 0);
+  // Simpler: A=11, face=10, else rank — but keep modest for early targets
+  const rankChips = cards.reduce((s, c) => {
+    if (c.rank === 14) return s + 11;
+    if (c.rank >= 11) return s + 10;
+    return s + c.rank;
+  }, 0);
+
+  return {
+    type: best,
+    displayName: best.comboName || best.name,
+    base: best.base,
+    mult: best.mult,
+    rankChips,
+    comboGeneral: best.comboGeneral || null,
+    pri: best.pri,
+  };
+}
+
+function applyJokers(evalResult, cards, jokers) {
+  let base = evalResult.base + evalResult.rankChips;
+  let mult = evalResult.mult;
+  const notes = [];
+
+  for (const jid of jokers) {
+    if (jid === 'guanyu') {
+      const hasShu = cards.some(c => c.suit === 'shu');
+      if (hasShu) { mult += 8; notes.push('关羽+8倍'); }
+      if (evalResult.type.id === 'flush' && cards.every(c => c.suit === 'shu')) {
+        mult += 4; notes.push('关羽蜀同花+4');
+      }
+    }
+    if (jid === 'zhangfei') {
+      if (evalResult.pri >= 4) { // three and above (three=4, straight=5...)
+        // 三条及以上 — pri >= 4 covers three,straight,flush,combo,fullhouse,four,sf
+        // But combo is 7, and "三条及以上" means three-of-a-kind or better poker hierarchy
+        // Spec: 三条及以上时底分×1.5 — use type id list
+        const ok = ['three','straight','flush','combo','fullhouse','four','straight_flush'].includes(evalResult.type.id);
+        if (ok) {
+          base = Math.floor(base * 1.5);
+          notes.push('张飞底分×1.5');
+        }
+      }
+    }
+    if (jid === 'zhaoyun') {
+      if (cards.length <= 2) { mult += 12; notes.push('赵云+12倍'); }
+    }
+  }
+  return { base, mult, score: base * mult, notes };
+}
+
+// ========== Game State ==========
+const state = {
+  stageIdx: 0,
+  score: 0,
+  lives: 3,
+  coins: 0,
+  playsLeft: 4,
+  discardsLeft: 3,
+  deck: [],
+  hand: [],
+  discardPile: [],
+  selected: new Set(),
+  jokers: ['guanyu', 'zhaoyun'], // demo start with 2 unlocked
+  ownedGenerals: new Set(['guanyu', 'zhaoyun']),
+  jokerSlots: 2,
+  gazeUsed: false,
+  phase: 'title', // title|play|shop|result|over
+  lastGaze: null,
+};
+
+// ========== UI Render ==========
+function renderJokers() {
+  const el = $('jokers');
+  el.innerHTML = '';
+  for (let i = 0; i < state.jokerSlots; i++) {
+    const div = document.createElement('div');
+    const jid = state.jokers[i];
+    if (jid) {
+      const g = GENERALS[jid];
+      div.className = 'joker';
+      div.innerHTML = `<div class="name">${g.name}</div><div class="desc">${g.desc}</div>`;
+    } else {
+      div.className = 'joker empty';
+      div.textContent = '空槽';
+    }
+    el.appendChild(div);
+  }
+  // Show gaze button
+  const hasZhuge = state.jokers.includes('zhuge');
+  $('btn-gaze').style.display = hasZhuge ? '' : 'none';
+  $('btn-gaze').disabled = state.gazeUsed || state.phase !== 'play';
+}
+
+function renderHUD() {
+  const st = STAGES[state.stageIdx];
+  $('stage-name').textContent = st.name;
+  $('target').textContent = st.target;
+  $('score').textContent = state.score;
+  $('lives').textContent = '♥'.repeat(state.lives) + '♡'.repeat(Math.max(0, 3 - state.lives));
+  $('plays').textContent = state.playsLeft;
+  $('discards').textContent = state.discardsLeft;
+  $('coins').textContent = '铜钱 ' + state.coins;
+  const br = $('boss-rule');
+  if (st.boss) {
+    br.style.display = '';
+    br.textContent = st.boss.text;
+  } else {
+    br.style.display = 'none';
+  }
+}
+
+function renderHand() {
+  const el = $('hand');
+  el.innerHTML = '';
+  // sort: suit then rank
+  const sorted = [...state.hand].sort((a, b) => {
+    if (a.suit !== b.suit) return a.suit.localeCompare(b.suit);
+    return a.rank - b.rank;
+  });
+  // keep visual order stable by sorting in place reference — update hand order
+  state.hand = sorted;
+  for (const c of state.hand) {
+    const div = document.createElement('div');
+    div.className = 'card ' + c.suitCls + (state.selected.has(c.id) ? ' selected' : '');
+    div.dataset.id = c.id;
+    div.innerHTML = `
+      <div class="corner">${rankLabel(c.rank)}<span class="suit-dot">${c.suitName}</span></div>
+      <div class="char">${c.char}</div>`;
+    div.addEventListener('click', () => toggleSelect(c.id));
+    el.appendChild(div);
+  }
+  updatePreview();
+}
+
+function updatePreview() {
+  const cards = getSelectedCards();
+  const prev = $('preview');
+  if (!cards.length) {
+    prev.innerHTML = '点选手牌（最多5张）';
+    return;
+  }
+  const ev = evaluateHand(cards);
+  const scored = applyJokers(ev, cards, state.jokers);
+  prev.innerHTML = `<span class="ptype">${ev.displayName}</span> · 底分 ${scored.base} × 倍率 ${scored.mult} = <b>${scored.score}</b>`;
+}
+
+function getSelectedCards() {
+  return state.hand.filter(c => state.selected.has(c.id));
+}
+
+function toggleSelect(id) {
+  if (state.phase !== 'play') return;
+  if (state.selected.has(id)) state.selected.delete(id);
+  else {
+    if (state.selected.size >= MAX_SELECT) { toast('最多选5张'); return; }
+    state.selected.add(id);
+  }
+  renderHand();
+}
+
+// ========== Core loop ==========
+function drawToHand() {
+  while (state.hand.length < HAND_LIMIT && state.deck.length) {
+    state.hand.push(state.deck.pop());
+  }
+}
+
+function startStage() {
+  const st = STAGES[state.stageIdx];
+  state.score = 0;
+  state.playsLeft = st.plays;
+  state.discardsLeft = st.discards;
+  state.deck = buildDeck();
+  state.hand = [];
+  state.discardPile = [];
+  state.selected.clear();
+  state.gazeUsed = false;
+  state.phase = 'play';
+  drawToHand();
+  // Soft guarantee: if early stage and no name chars in hand, reshuffle once bias
+  ensurePlayableHand();
+  showScreen('game');
+  hideOverlays();
+  renderAll();
+  $('float-score').textContent = '';
+  $('log').textContent = '摸牌完毕，选择牌型出牌';
+}
+
+function ensurePlayableHand() {
+  // Mild help: if hand has zero name-relevant chars for owned/groupable, inject from deck
+  const need = new Set();
+  for (const g of Object.values(GENERALS)) {
+    if (['guanyu','zhangfei','zhaoyun','zhuge'].includes(g.id)) {
+      g.chars.forEach(ch => need.add(ch));
+    }
+  }
+  const has = state.hand.some(c => need.has(c.char));
+  if (!has) {
+    for (let i = state.deck.length - 1; i >= 0; i--) {
+      if (need.has(state.deck[i].char)) {
+        // swap with last hand card
+        const tmp = state.hand[state.hand.length - 1];
+        state.hand[state.hand.length - 1] = state.deck[i];
+        state.deck[i] = tmp;
+        break;
+      }
+    }
+  }
+}
+
+function renderAll() {
+  renderHUD();
+  renderJokers();
+  renderHand();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function hideOverlays() {
+  ['shop','gaze','result'].forEach(id => $(id).classList.remove('active'));
+}
+
+function playHand() {
+  if (state.phase !== 'play') return;
+  const cards = getSelectedCards();
+  if (!cards.length) { toast('请先选牌'); return; }
+  if (state.playsLeft <= 0) { toast('出牌次数已用完'); return; }
+
+  const ev = evaluateHand(cards);
+  const st = STAGES[state.stageIdx];
+  let scored = applyJokers(ev, cards, state.jokers);
+  let finalScore = scored.score;
+  let note = scored.notes.join(' · ');
+
+  // Boss rule
+  if (st.boss && ev.pri < st.boss.minPri) {
+    finalScore = 0;
+    note = (note ? note + ' · ' : '') + '虎牢关：高牌不计分';
+  }
+
+  state.score += finalScore;
+  state.playsLeft--;
+
+  // Remove played cards
+  const playedIds = new Set(cards.map(c => c.id));
+  state.hand = state.hand.filter(c => !playedIds.has(c.id));
+  state.discardPile.push(...cards);
+  state.selected.clear();
+  drawToHand();
+
+  // Unlock general via 组将
+  if (ev.comboGeneral) {
+    unlockGeneral(ev.comboGeneral.id);
+  }
+
+  const float = $('float-score');
+  float.textContent = `${scored.base} × ${scored.mult} = ${finalScore}`;
+  float.style.animation = 'none';
+  void float.offsetWidth;
+  float.style.animation = '';
+  $('log').textContent = `${ev.displayName}` + (note ? ' · ' + note : '') + ` · 累计 ${state.score}/${st.target}`;
+
+  renderAll();
+  checkStageEnd();
+}
+
+function discardHand() {
+  if (state.phase !== 'play') return;
+  const cards = getSelectedCards();
+  if (!cards.length) { toast('请先选要弃的牌'); return; }
+  if (state.discardsLeft <= 0) { toast('弃牌次数已用完'); return; }
+  state.discardsLeft--;
+  const ids = new Set(cards.map(c => c.id));
+  state.hand = state.hand.filter(c => !ids.has(c.id));
+  state.discardPile.push(...cards);
+  state.selected.clear();
+  drawToHand();
+  $('log').textContent = `弃掉 ${cards.length} 张，剩余弃牌 ${state.discardsLeft}`;
+  $('float-score').textContent = '';
+  renderAll();
+}
+
+function unlockGeneral(gid) {
+  if (state.ownedGenerals.has(gid)) return;
+  state.ownedGenerals.add(gid);
+  toast(`组将成功！解锁武将「${GENERALS[gid].name}」`);
+  // Auto equip if empty slot
+  if (state.jokers.length < state.jokerSlots && !state.jokers.includes(gid)) {
+    // Only equip if has implemented effect among first 4, or any owned for demo
+    if (['guanyu','zhangfei','zhaoyun','zhuge'].includes(gid)) {
+      state.jokers.push(gid);
+      toast(`${GENERALS[gid].name} 已装备到小丑槽`);
+    }
+  }
+}
+
+function checkStageEnd() {
+  const st = STAGES[state.stageIdx];
+  if (state.score >= st.target) {
+    // Win stage
+    state.phase = 'result';
+    state.coins += st.reward;
+    setTimeout(() => {
+      $('result-title').textContent = '破关！';
+      $('result-msg').textContent = `${st.name} 达成 ${state.score}/${st.target}，获得铜钱 ${st.reward}`;
+      $('result').classList.add('active');
+      $('btn-result').onclick = () => {
+        $('result').classList.remove('active');
+        if (state.stageIdx >= STAGES.length - 1) {
+          winCampaign();
+        } else {
+          openShop();
+        }
+      };
+    }, 600);
+    return;
+  }
+  if (state.playsLeft <= 0) {
+    // Fail stage
+    state.lives--;
+    state.phase = 'result';
+    setTimeout(() => {
+      if (state.lives <= 0) {
+        $('result-title').textContent = '气势尽失';
+        $('result-msg').textContent = `未达目标 ${st.target}，得分 ${state.score}。再来一局？`;
+        $('result').classList.add('active');
+        $('btn-result').onclick = () => { resetRun(); startStage(); };
+      } else {
+        $('result-title').textContent = '失利';
+        $('result-msg').textContent = `未达目标，气势 -1（剩余 ${state.lives}）。重打本关。`;
+        $('result').classList.add('active');
+        $('btn-result').onclick = () => { startStage(); };
+      }
+    }, 600);
+  }
+}
+
+function winCampaign() {
+  state.phase = 'over';
+  $('result-title').textContent = '章一通关！';
+  $('result-msg').textContent = `黄巾之乱平定。铜钱 ${state.coins}。武将：${[...state.ownedGenerals].map(id => GENERALS[id].name).join('、')}`;
+  $('result').classList.add('active');
+  $('btn-result').onclick = () => { resetRun(); showScreen('title'); hideOverlays(); };
+}
+
+function resetRun() {
+  state.stageIdx = 0;
+  state.score = 0;
+  state.lives = 3;
+  state.coins = 0;
+  state.jokers = ['guanyu', 'zhaoyun'];
+  state.ownedGenerals = new Set(['guanyu', 'zhaoyun']);
+  state.jokerSlots = 2;
+  state.selected.clear();
+  state.phase = 'title';
+}
+
+// ========== Shop ==========
+function openShop() {
+  state.phase = 'shop';
+  $('shop-msg').textContent = `铜钱 ${state.coins} · 选择一项强化（可跳过）`;
+  const opts = $('shop-opts');
+  opts.innerHTML = '';
+
+  const offers = [
+    {
+      id: 'add_joker',
+      title: '招募武将',
+      desc: '随机装备一名已实装未在槽的武将（张飞/诸葛亮）',
+      price: 10,
+      apply() {
+        const pool = ['zhangfei', 'zhuge'].filter(id => !state.jokers.includes(id));
+        if (!pool.length) { toast('已拥有全部首发武将'); return false; }
+        if (state.jokers.length >= state.jokerSlots) {
+          // expand slot once or replace last
+          if (state.jokerSlots < 4) state.jokerSlots++;
+          else state.jokers.pop();
+        }
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        state.jokers.push(pick);
+        state.ownedGenerals.add(pick);
+        toast(`招募 ${GENERALS[pick].name}`);
+        return true;
+      }
+    },
+    {
+      id: 'remove_low',
+      title: '剔除羸兵',
+      desc: '从下一关牌库倾向中移除低点牌（本关起低点权重大幅降低）',
+      price: 6,
+      apply() {
+        state._removeLow = (state._removeLow || 0) + 1;
+        toast('下一关低点牌减少');
+        return true;
+      }
+    },
+    {
+      id: 'gain_coin',
+      title: '劫掠补给',
+      desc: '铜钱 +5',
+      price: 0,
+      apply() {
+        state.coins += 5;
+        toast('铜钱 +5');
+        return true;
+      }
+    },
+  ];
+
+  for (const o of offers) {
+    const div = document.createElement('div');
+    const can = state.coins >= o.price;
+    div.className = 'shop-opt' + (can ? '' : ' disabled');
+    div.innerHTML = `<div><b>${o.title}</b> <span class="price">${o.price ? '-' + o.price + ' 铜钱' : '免费'}</span></div>
+      <div style="opacity:.7;font-size:.8rem;margin-top:4px">${o.desc}</div>`;
+    div.onclick = () => {
+      if (state.coins < o.price) return;
+      state.coins -= o.price;
+      if (o.apply()) {
+        openShop(); // refresh
+      }
+    };
+    opts.appendChild(div);
+  }
+  $('shop').classList.add('active');
+}
+
+$('btn-shop-next').onclick = () => {
+  state.stageIdx++;
+  $('shop').classList.remove('active');
+  startStage();
+};
+
+// ========== Gaze (诸葛亮) ==========
+$('btn-gaze').onclick = () => {
+  if (state.gazeUsed || !state.jokers.includes('zhuge')) return;
+  const top = [];
+  for (let i = 0; i < 3 && state.deck.length; i++) {
+    top.push(state.deck[state.deck.length - 1 - i]);
+  }
+  // actually peek without remove — deck top is end of array
+  const peeked = state.deck.slice(-3).reverse(); // top first
+  state.lastGaze = peeked.map(c => c.id);
+  const box = $('gaze-cards');
+  box.innerHTML = '';
+  for (const c of peeked) {
+    const div = document.createElement('div');
+    div.className = 'card ' + c.suitCls;
+    div.innerHTML = `<div class="corner">${rankLabel(c.rank)}<span class="suit-dot">${c.suitName}</span></div><div class="char">${c.char}</div>`;
+    box.appendChild(div);
+  }
+  if (!peeked.length) {
+    toast('牌库已空');
+    return;
+  }
+  $('gaze').classList.add('active');
+};
+
+function consumeGaze(mode) {
+  if (!state.lastGaze) return;
+  // Remove top 3 from deck
+  const n = Math.min(3, state.deck.length);
+  const taken = [];
+  for (let i = 0; i < n; i++) taken.push(state.deck.pop());
+  // taken[0] was top
+  if (mode === 'shuffle') shuffle(taken);
+  // put back so first of taken is new top (push in reverse)
+  for (let i = taken.length - 1; i >= 0; i--) state.deck.push(taken[i]);
+  state.gazeUsed = true;
+  state.lastGaze = null;
+  $('gaze').classList.remove('active');
+  renderJokers();
+  toast(mode === 'shuffle' ? '已洗乱放回' : '已按原序放回');
+}
+$('btn-gaze-keep').onclick = () => consumeGaze('keep');
+$('btn-gaze-shuffle').onclick = () => consumeGaze('shuffle');
+$('btn-gaze-close').onclick = () => {
+  // closing without using still consumes? Spec: 每关一次 — viewing is the use
+  state.gazeUsed = true;
+  state.lastGaze = null;
+  $('gaze').classList.remove('active');
+  renderJokers();
+};
+
+// ========== Wire ==========
+$('btn-start').onclick = () => {
+  resetRun();
+  startStage();
+};
+$('btn-play').onclick = playHand;
+$('btn-discard').onclick = discardHand;
+
+// Expose for console verification
+window.SGBalatro = {
+  evaluateHand, applyJokers, detectCombo, buildDeck, GENERALS, HAND_TYPES, state,
+  test() {
+    const d = buildDeck();
+    const sample = [
+      { suit:'shu', rank:10, char:'关' },
+      { suit:'shu', rank:10, char:'羽' },
+      { suit:'wei', rank:5, char:'兵' },
+    ];
+    const ev = evaluateHand(sample);
+    const sc = applyJokers(ev, sample, ['guanyu','zhaoyun']);
+    console.log('组将关羽 test', ev, sc);
+    return { ev, sc };
+  }
+};
+console.log('[三国小丑牌] 就绪。控制台 SGBalatro.test() 可验证评牌。');
+})();
+</script>
+</body>
+</html>
