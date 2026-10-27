@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>三国小丑牌 · 试玩</title>
+<meta name="sg-proto-v" content="2" />
 <style>
 :root {
   --bg: #1a1410;
@@ -210,6 +211,51 @@ body {
   80% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* Progress */
+.progress-wrap {
+  grid-column: 1 / -1;
+  background: rgba(0,0,0,.35); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px 8px;
+}
+.progress-wrap .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.progress-wrap .row .big { color: var(--gold); font-weight: 700; font-size: 1.05rem; }
+.progress-wrap .bar {
+  height: 8px; border-radius: 4px; background: rgba(243,230,200,.12); overflow: hidden;
+}
+.progress-wrap .bar > i {
+  display: block; height: 100%; width: 0%;
+  background: linear-gradient(90deg, #8a5a18, var(--gold));
+  transition: width .25s ease;
+}
+.stat .hint { opacity: .45; font-size: .62rem; margin-left: 4px; }
+.joker { cursor: pointer; position: relative; }
+.joker-tip {
+  display: none; position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px;
+  background: rgba(0,0,0,.92); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 8px; font-size: .65rem; line-height: 1.35; color: var(--paper);
+  z-index: 8; width: 120px; text-align: left;
+}
+.joker.show-tip .joker-tip, .joker:hover .joker-tip { display: block; }
+.hand-preview {
+  font-size: .9rem; opacity: .95; min-height: 2.6em; text-align: center;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 8px 12px; max-width: 96%; line-height: 1.45;
+}
+.hand-preview .eq { color: #fff; font-size: 1.05rem; font-weight: 700; }
+.hand-preview .muted { opacity: .55; font-size: .72rem; display: block; margin-top: 2px; }
+/* Tutorial */
+#tutorial.overlay.active { z-index: 40; }
+.tut-card {
+  background: linear-gradient(180deg, #2a2218, #1a1410);
+  border: 1px solid var(--gold); border-radius: 14px; padding: 22px 20px;
+  max-width: 320px; width: 92%; text-align: left;
+}
+.tut-card h3 { color: var(--gold); letter-spacing: .15em; margin-bottom: 10px; font-size: 1.1rem; }
+.tut-card p { opacity: .9; font-size: .95rem; line-height: 1.55; margin-bottom: 16px; }
+.tut-card .steps { opacity: .5; font-size: .75rem; margin-bottom: 12px; }
+.tut-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
 </style>
 </head>
 <body>
@@ -221,23 +267,26 @@ body {
     <h1>三国小丑牌</h1>
     <div class="sub">武将即小丑 · 战役盲注 · 汉字组名<br/>底分 × 倍率 · 非文字塔防</div>
     <button class="btn primary" id="btn-start">开 始 试 玩</button>
-    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · 黄巾之乱 · 竖屏 H5 原型</div>
+    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · 目标 80/180/280 · 开局仅关羽</div>
   </div>
 
   <!-- Game -->
   <div id="game" class="screen">
     <div class="hud">
       <div class="stat full"><span class="label" id="stage-name">黄巾 · 小关1</span><span class="val" id="coins">铜钱 0</span></div>
-      <div class="stat"><span class="label">目标</span><span class="val" id="target">50</span></div>
-      <div class="stat"><span class="label">得分</span><span class="val" id="score">0</span></div>
-      <div class="stat warn"><span class="label">气势</span><span class="val" id="lives">♥♥♥</span></div>
-      <div class="stat"><span class="label">出牌</span><span class="val" id="plays">4</span></div>
-      <div class="stat"><span class="label">弃牌</span><span class="val" id="discards">3</span></div>
+      <div class="progress-wrap">
+        <div class="row"><span class="label">本关得分 / 目标</span><span class="big"><span id="score">0</span> / <span id="target">80</span></span></div>
+        <div class="bar"><i id="score-bar"></i></div>
+      </div>
+      <div class="stat warn"><span class="label">气势<span class="hint">失败-1</span></span><span class="val" id="lives">♥♥♥</span></div>
+      <div class="stat"><span class="label">出牌<span class="hint">每关次数</span></span><span class="val" id="plays">4</span></div>
+      <div class="stat"><span class="label">弃牌<span class="hint">换手牌</span></span><span class="val" id="discards">2</span></div>
+      <div class="stat"><span class="label">小丑</span><span class="val" style="font-size:.7rem;opacity:.75">点将看效果</span></div>
     </div>
     <div id="boss-rule" class="boss-rule" style="display:none"></div>
     <div class="jokers" id="jokers"></div>
     <div class="score-area">
-      <div class="hand-preview" id="preview">点选手牌（最多5张）</div>
+      <div class="hand-preview" id="preview">点选手牌看预估得分<br/><span class="muted">底分 × 倍率 = 本回合得分</span></div>
       <div class="float-score" id="float-score"></div>
       <div class="log-line" id="log"></div>
     </div>
@@ -277,6 +326,31 @@ body {
     <button class="btn primary" id="btn-result">继续</button>
   </div>
 
+
+  <!-- Tutorial -->
+  <div id="tutorial" class="overlay">
+    <div class="tut-card">
+      <div class="steps" id="tut-steps">1 / 3</div>
+      <h3 id="tut-title">怎么玩</h3>
+      <p id="tut-body"></p>
+      <div class="tut-actions">
+        <button class="btn small ghost" id="btn-tut-skip">跳过</button>
+        <button class="btn small primary" id="btn-tut-next">下一步</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Boss tip -->
+  <div id="boss-tip" class="overlay">
+    <div class="tut-card">
+      <h3>虎牢关</h3>
+      <p>本关必须打出<strong>对子及以上</strong>牌型才计分；高牌本回合得 0 分。</p>
+      <div class="tut-actions">
+        <button class="btn small primary" id="btn-boss-tip-ok">知道了</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 </div>
 
@@ -311,7 +385,7 @@ const HAND_TYPES = [
 const GENERALS = {
   guanyu:   { id: 'guanyu', name: '关羽', chars: ['关','羽'], desc: '含蜀色 倍率+8；蜀同花再+4' },
   zhangfei: { id: 'zhangfei', name: '张飞', chars: ['张','飞'], desc: '三条及以上 底分×1.5' },
-  zhaoyun:  { id: 'zhaoyun', name: '赵云', chars: ['赵','云'], desc: '出牌≤2张 倍率+12' },
+  zhaoyun:  { id: 'zhaoyun', name: '赵云', chars: ['赵','云'], desc: '本关首次≤2张高牌/对子 倍率+6' },
   zhuge:    { id: 'zhuge', name: '诸葛亮', chars: ['诸','葛','亮'], desc: '每关一次「观星」' },
   liubei:   { id: 'liubei', name: '刘备', chars: ['刘','备'], desc: '（未实装效果）' },
   caocao:   { id: 'caocao', name: '曹操', chars: ['曹','操'], desc: '（未实装效果）' },
@@ -320,10 +394,10 @@ const GENERALS = {
 };
 
 const STAGES = [
-  { id: 'hj1', name: '黄巾 · 小关1', target: 50, plays: 4, discards: 3, boss: null, reward: 8 },
-  { id: 'hj2', name: '黄巾 · 小关2', target: 100, plays: 4, discards: 3, boss: null, reward: 12 },
-  { id: 'hlg', name: 'Boss · 虎牢关', target: 150, plays: 4, discards: 3,
-    boss: { text: '虎牢关：牌型须为对子及以上，否则本回合得分 0', minPri: 2 }, reward: 20 },
+  { id: 'hj1', name: '黄巾 · 小关1', target: 80, plays: 4, discards: 2, boss: null, reward: 10 },
+  { id: 'hj2', name: '黄巾 · 小关2', target: 180, plays: 4, discards: 2, boss: null, reward: 14 },
+  { id: 'hlg', name: 'Boss · 虎牢关', target: 280, plays: 4, discards: 2,
+    boss: { text: '虎牢关：必须对子及以上才计分，高牌得 0', minPri: 2 }, reward: 22 },
 ];
 
 // Char pool for deck construction — ensure generals' chars appear enough
@@ -459,7 +533,8 @@ function evaluateHand(cards) {
   };
 }
 
-function applyJokers(evalResult, cards, jokers) {
+function applyJokers(evalResult, cards, jokers, ctx) {
+  ctx = ctx || {};
   let base = evalResult.base + evalResult.rankChips;
   let mult = evalResult.mult;
   const notes = [];
@@ -473,19 +548,19 @@ function applyJokers(evalResult, cards, jokers) {
       }
     }
     if (jid === 'zhangfei') {
-      if (evalResult.pri >= 4) { // three and above (three=4, straight=5...)
-        // 三条及以上 — pri >= 4 covers three,straight,flush,combo,fullhouse,four,sf
-        // But combo is 7, and "三条及以上" means three-of-a-kind or better poker hierarchy
-        // Spec: 三条及以上时底分×1.5 — use type id list
-        const ok = ['three','straight','flush','combo','fullhouse','four','straight_flush'].includes(evalResult.type.id);
-        if (ok) {
-          base = Math.floor(base * 1.5);
-          notes.push('张飞底分×1.5');
-        }
+      const ok = ['three','straight','flush','combo','fullhouse','four','straight_flush'].includes(evalResult.type.id);
+      if (ok) {
+        base = Math.floor(base * 1.5);
+        notes.push('张飞底分×1.5');
       }
     }
     if (jid === 'zhaoyun') {
-      if (cards.length <= 2) { mult += 12; notes.push('赵云+12倍'); }
+      // 本关仅第一次出牌，且≤2张，且高牌/对子（不含组将）
+      const tid = evalResult.type.id;
+      const okType = (tid === 'high' || tid === 'pair');
+      if (ctx.firstPlay && !ctx.zhaoyunUsed && cards.length <= 2 && okType) {
+        mult += 6; notes.push('赵云首出+6倍');
+      }
     }
   }
   return { base, mult, score: base * mult, notes };
@@ -498,18 +573,28 @@ const state = {
   lives: 3,
   coins: 0,
   playsLeft: 4,
-  discardsLeft: 3,
+  discardsLeft: 2,
   deck: [],
   hand: [],
   discardPile: [],
   selected: new Set(),
-  jokers: ['guanyu', 'zhaoyun'], // demo start with 2 unlocked
-  ownedGenerals: new Set(['guanyu', 'zhaoyun']),
+  jokers: ['guanyu'], // 开局仅关羽
+  ownedGenerals: new Set(['guanyu']),
   jokerSlots: 2,
   gazeUsed: false,
+  playsMadeThisStage: 0,
+  zhaoyunUsedThisStage: false,
   phase: 'title', // title|play|shop|result|over
   lastGaze: null,
 };
+
+const LS_TUT = 'sg_balatro_tut_v2';
+const LS_BOSS = 'sg_balatro_boss_tip_v1';
+const TUT_STEPS = [
+  { title: '① 选牌', body: '点选手牌（最多5张），选中的牌会上浮。再点一次可取消。' },
+  { title: '② 出牌得分', body: '点「出牌」：本回合得分 = 底分 × 倍率。累计达到目标分就过关；出牌用尽未达标会掉气势。' },
+  { title: '③ 组将与小丑', body: '凑齐武将名字（如「关」「羽」）可打出「组将」。组将成功会点亮小丑槽——点小丑可看能力。' },
+];
 
 // ========== UI Render ==========
 function renderJokers() {
@@ -521,14 +606,20 @@ function renderJokers() {
     if (jid) {
       const g = GENERALS[jid];
       div.className = 'joker';
-      div.innerHTML = `<div class="name">${g.name}</div><div class="desc">${g.desc}</div>`;
+      div.innerHTML = `<div class="name">${g.name}</div><div class="desc">${g.desc}</div><div class="joker-tip">${g.desc}</div>`;
+      div.title = g.desc;
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.joker.show-tip').forEach(n => { if (n !== div) n.classList.remove('show-tip'); });
+        div.classList.toggle('show-tip');
+        toast(g.name + '：' + g.desc);
+      });
     } else {
       div.className = 'joker empty';
       div.textContent = '空槽';
     }
     el.appendChild(div);
   }
-  // Show gaze button
   const hasZhuge = state.jokers.includes('zhuge');
   $('btn-gaze').style.display = hasZhuge ? '' : 'none';
   $('btn-gaze').disabled = state.gazeUsed || state.phase !== 'play';
@@ -539,6 +630,9 @@ function renderHUD() {
   $('stage-name').textContent = st.name;
   $('target').textContent = st.target;
   $('score').textContent = state.score;
+  const pct = Math.min(100, Math.round((state.score / st.target) * 100));
+  const bar = $('score-bar');
+  if (bar) bar.style.width = pct + '%';
   $('lives').textContent = '♥'.repeat(state.lives) + '♡'.repeat(Math.max(0, 3 - state.lives));
   $('plays').textContent = state.playsLeft;
   $('discards').textContent = state.discardsLeft;
@@ -580,16 +674,28 @@ function renderHand() {
   updatePreview();
 }
 
+function jokerCtxForPreview() {
+  return {
+    firstPlay: state.playsMadeThisStage === 0,
+    zhaoyunUsed: state.zhaoyunUsedThisStage,
+  };
+}
 function updatePreview() {
   const cards = getSelectedCards();
   const prev = $('preview');
   if (!cards.length) {
-    prev.innerHTML = '点选手牌（最多5张）';
+    prev.innerHTML = '点选手牌看预估得分<span class="muted">底分 × 倍率 = 本回合得分 · 凑够目标即过关</span>';
     return;
   }
   const ev = evaluateHand(cards);
-  const scored = applyJokers(ev, cards, state.jokers);
-  prev.innerHTML = `<span class="ptype">${ev.displayName}</span> · 底分 ${scored.base} × 倍率 ${scored.mult} = <b>${scored.score}</b>`;
+  const scored = applyJokers(ev, cards, state.jokers, jokerCtxForPreview());
+  const note = scored.notes.length ? `<span class="muted">${scored.notes.join(' · ')}</span>` : '';
+  const st = STAGES[state.stageIdx];
+  let warn = '';
+  if (st.boss && ev.pri < st.boss.minPri) {
+    warn = `<span class="muted" style="color:#f0b0b0">虎牢关：此牌型本回合得 0 分</span>`;
+  }
+  prev.innerHTML = `<span class="ptype">${ev.displayName}</span><br/><span class="eq">${scored.base} × ${scored.mult} = ${scored.score}</span>${note}${warn}`;
 }
 
 function getSelectedCards() {
@@ -623,16 +729,18 @@ function startStage() {
   state.discardPile = [];
   state.selected.clear();
   state.gazeUsed = false;
+  state.playsMadeThisStage = 0;
+  state.zhaoyunUsedThisStage = false;
   state.phase = 'play';
   drawToHand();
-  // Soft guarantee: if early stage and no name chars in hand, reshuffle once bias
   ensurePlayableHand();
   showScreen('game');
   hideOverlays();
   const handEl = $('hand'); if (handEl) delete handEl.dataset.inited;
   renderAll();
   $('float-score').textContent = '';
-  $('log').textContent = '摸牌完毕，选择牌型出牌';
+  $('log').textContent = '摸牌完毕 · 看上方预估再出牌';
+  maybeShowTutorialOrBossTip();
 }
 
 function ensurePlayableHand() {
@@ -668,7 +776,44 @@ function showScreen(id) {
   $(id).classList.add('active');
 }
 function hideOverlays() {
-  ['shop','gaze','result'].forEach(id => $(id).classList.remove('active'));
+  ['shop','gaze','result','tutorial','boss-tip'].forEach(id => {
+    const n = $(id); if (n) n.classList.remove('active');
+  });
+}
+
+// ========== Tutorial ==========
+let tutIndex = 0;
+function maybeShowTutorialOrBossTip() {
+  const seenTut = localStorage.getItem(LS_TUT) === '1';
+  if (!seenTut) {
+    tutIndex = 0;
+    showTutorialStep();
+    return;
+  }
+  maybeShowBossTip();
+}
+function showTutorialStep() {
+  const step = TUT_STEPS[tutIndex];
+  $('tut-steps').textContent = (tutIndex + 1) + ' / ' + TUT_STEPS.length;
+  $('tut-title').textContent = step.title;
+  $('tut-body').textContent = step.body;
+  $('btn-tut-next').textContent = tutIndex >= TUT_STEPS.length - 1 ? '开始' : '下一步';
+  $('tutorial').classList.add('active');
+}
+function finishTutorial() {
+  localStorage.setItem(LS_TUT, '1');
+  $('tutorial').classList.remove('active');
+  maybeShowBossTip();
+}
+function maybeShowBossTip() {
+  const st = STAGES[state.stageIdx];
+  if (!st.boss) return;
+  if (localStorage.getItem(LS_BOSS) === '1') return;
+  $('boss-tip').classList.add('active');
+}
+function dismissBossTip() {
+  localStorage.setItem(LS_BOSS, '1');
+  $('boss-tip').classList.remove('active');
 }
 
 function playHand() {
@@ -679,18 +824,23 @@ function playHand() {
 
   const ev = evaluateHand(cards);
   const st = STAGES[state.stageIdx];
-  let scored = applyJokers(ev, cards, state.jokers);
+  const ctx = jokerCtxForPreview();
+  let scored = applyJokers(ev, cards, state.jokers, ctx);
   let finalScore = scored.score;
   let note = scored.notes.join(' · ');
 
-  // Boss rule
   if (st.boss && ev.pri < st.boss.minPri) {
     finalScore = 0;
     note = (note ? note + ' · ' : '') + '虎牢关：高牌不计分';
   }
 
+  // 消耗赵云本关首出
+  if (scored.notes.some(n => n.includes('赵云'))) {
+    state.zhaoyunUsedThisStage = true;
+  }
   state.score += finalScore;
   state.playsLeft--;
+  state.playsMadeThisStage++;
 
   // Remove played cards
   const playedIds = new Set(cards.map(c => c.id));
@@ -799,9 +949,11 @@ function resetRun() {
   state.score = 0;
   state.lives = 3;
   state.coins = 0;
-  state.jokers = ['guanyu', 'zhaoyun'];
-  state.ownedGenerals = new Set(['guanyu', 'zhaoyun']);
+  state.jokers = ['guanyu'];
+  state.ownedGenerals = new Set(['guanyu']);
   state.jokerSlots = 2;
+  state.playsMadeThisStage = 0;
+  state.zhaoyunUsedThisStage = false;
   state.selected.clear();
   state.phase = 'title';
 }
@@ -820,7 +972,7 @@ function openShop() {
       desc: '随机装备一名已实装未在槽的武将（张飞/诸葛亮）',
       price: 10,
       apply() {
-        const pool = ['zhangfei', 'zhuge'].filter(id => !state.jokers.includes(id));
+        const pool = ['zhangfei', 'zhuge', 'zhaoyun'].filter(id => !state.jokers.includes(id));
         if (!pool.length) { toast('已拥有全部首发武将'); return false; }
         if (state.jokers.length >= state.jokerSlots) {
           // expand slot once or replace last
@@ -940,21 +1092,30 @@ $('btn-start').onclick = () => {
 };
 $('btn-play').onclick = playHand;
 $('btn-discard').onclick = discardHand;
+$('btn-tut-next').onclick = () => {
+  if (tutIndex >= TUT_STEPS.length - 1) finishTutorial();
+  else { tutIndex++; showTutorialStep(); }
+};
+$('btn-tut-skip').onclick = finishTutorial;
+$('btn-boss-tip-ok').onclick = dismissBossTip;
 
 // Expose for console verification
 window.SGBalatro = {
   evaluateHand, applyJokers, detectCombo, buildDeck, GENERALS, HAND_TYPES, state,
   test() {
-    const d = buildDeck();
     const sample = [
       { suit:'shu', rank:10, char:'关' },
       { suit:'shu', rank:10, char:'羽' },
       { suit:'wei', rank:5, char:'兵' },
     ];
     const ev = evaluateHand(sample);
-    const sc = applyJokers(ev, sample, ['guanyu','zhaoyun']);
-    console.log('组将关羽 test', ev, sc);
-    return { ev, sc };
+    const sc = applyJokers(ev, sample, ['guanyu'], { firstPlay: true, zhaoyunUsed: false });
+    const pair = [{ suit:'wei', rank:7, char:'兵' }, { suit:'shu', rank:7, char:'卒' }];
+    const ev2 = evaluateHand(pair);
+    const sc2 = applyJokers(ev2, pair, ['zhaoyun'], { firstPlay: true, zhaoyunUsed: false });
+    const sc3 = applyJokers(ev2, pair, ['zhaoyun'], { firstPlay: false, zhaoyunUsed: false });
+    console.log('组将关羽', ev, sc, '赵云首出对子', sc2, '赵云非首出', sc3);
+    return { ev, sc, sc2, sc3 };
   }
 };
 console.log('[三国小丑牌] 就绪。控制台 SGBalatro.test() 可验证评牌。');

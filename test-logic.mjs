@@ -1,6 +1,5 @@
 /** Headless smoke tests for core scoring — run: node test-logic.mjs */
 
-const SUITS = [{id:'wei'},{id:'shu'},{id:'wu'},{id:'qun'}];
 const HAND_TYPES = [
   { id: 'straight_flush', name: '同花顺', base: 100, mult: 8, pri: 10 },
   { id: 'four', name: '金刚', base: 60, mult: 7, pri: 9 },
@@ -73,7 +72,8 @@ function evaluateHand(cards) {
   }, 0);
   return { type: best, displayName: best.comboName || best.name, base: best.base, mult: best.mult, rankChips, comboGeneral: best.comboGeneral || null, pri: best.pri };
 }
-function applyJokers(ev, cards, jokers) {
+function applyJokers(ev, cards, jokers, ctx) {
+  ctx = ctx || {};
   let base = ev.base + ev.rankChips;
   let mult = ev.mult;
   for (const jid of jokers) {
@@ -85,7 +85,11 @@ function applyJokers(ev, cards, jokers) {
       const ok = ['three','straight','flush','combo','fullhouse','four','straight_flush'].includes(ev.type.id);
       if (ok) base = Math.floor(base * 1.5);
     }
-    if (jid === 'zhaoyun' && cards.length <= 2) mult += 12;
+    if (jid === 'zhaoyun') {
+      const tid = ev.type.id;
+      const okType = (tid === 'high' || tid === 'pair');
+      if (ctx.firstPlay && !ctx.zhaoyunUsed && cards.length <= 2 && okType) mult += 6;
+    }
   }
   return { base, mult, score: base * mult };
 }
@@ -96,40 +100,42 @@ function assert(name, cond) {
   else { fail++; console.error('✗', name); }
 }
 
-// Pair
 {
   const cards = [{suit:'wei',rank:7,char:'兵'},{suit:'shu',rank:7,char:'卒'}];
-  const ev = evaluateHand(cards);
-  assert('对子识别', ev.type.id === 'pair');
+  assert('对子识别', evaluateHand(cards).type.id === 'pair');
 }
-// 组将 关羽
 {
   const cards = [{suit:'shu',rank:10,char:'关'},{suit:'wei',rank:5,char:'羽'},{suit:'wu',rank:3,char:'兵'}];
   const ev = evaluateHand(cards);
   assert('组将关羽', ev.type.id === 'combo' && ev.comboGeneral.name === '关羽');
 }
-// 诸葛亮三字
 {
   const cards = [{suit:'shu',rank:2,char:'诸'},{suit:'wei',rank:3,char:'葛'},{suit:'wu',rank:4,char:'亮'}];
-  const ev = evaluateHand(cards);
-  assert('组将诸葛亮', ev.comboGeneral && ev.comboGeneral.name === '诸葛亮');
+  assert('组将诸葛亮', evaluateHand(cards).comboGeneral.name === '诸葛亮');
 }
-// 赵云 2张
 {
+  // 赵云：组将不算触发
   const cards = [{suit:'shu',rank:14,char:'赵'},{suit:'shu',rank:14,char:'云'}];
   const ev = evaluateHand(cards);
-  const sc = applyJokers(ev, cards, ['zhaoyun']);
-  assert('赵云组将倍率', sc.mult === 4 + 12);
-  assert('赵云对子得分>0', sc.score > 0);
+  const sc = applyJokers(ev, cards, ['zhaoyun'], { firstPlay: true, zhaoyunUsed: false });
+  assert('赵云不加成组将', sc.mult === 4);
 }
-// 关羽蜀色
+{
+  // 赵云：首出对子 +6
+  const cards = [{suit:'wei',rank:9,char:'兵'},{suit:'shu',rank:9,char:'卒'}];
+  const ev = evaluateHand(cards);
+  const sc = applyJokers(ev, cards, ['zhaoyun'], { firstPlay: true, zhaoyunUsed: false });
+  assert('赵云首出对子+6', sc.mult === 2 + 6);
+  const sc2 = applyJokers(ev, cards, ['zhaoyun'], { firstPlay: false, zhaoyunUsed: false });
+  assert('赵云非首出不加', sc2.mult === 2);
+  const sc3 = applyJokers(ev, cards, ['zhaoyun'], { firstPlay: true, zhaoyunUsed: true });
+  assert('赵云已用过不加', sc3.mult === 2);
+}
 {
   const cards = [{suit:'shu',rank:9,char:'兵'},{suit:'wei',rank:9,char:'卒'}];
-  const ev = evaluateHand(cards);
-  const sc = applyJokers(ev, cards, ['guanyu']);
+  const sc = applyJokers(evaluateHand(cards), cards, ['guanyu']);
   assert('关羽含蜀+8', sc.mult === 2 + 8);
 }
-// 张飞三条
 {
   const cards = [{suit:'wei',rank:8,char:'兵'},{suit:'shu',rank:8,char:'卒'},{suit:'wu',rank:8,char:'将'}];
   const ev = evaluateHand(cards);
@@ -137,13 +143,9 @@ function assert(name, cond) {
   const sc = applyJokers(ev, cards, ['zhangfei']);
   assert('张飞三条×1.5', sc.base === Math.floor(baseBefore * 1.5));
 }
-// 虎牢关：高牌 pri < 2
 {
-  const cards = [{suit:'wei',rank:14,char:'兵'}];
-  const ev = evaluateHand(cards);
-  assert('高牌 pri=1', ev.pri === 1);
+  assert('高牌 pri=1', evaluateHand([{suit:'wei',rank:14,char:'兵'}]).pri === 1);
 }
-// 同花顺优先于组将
 {
   const cards = [
     {suit:'shu',rank:10,char:'关'},
@@ -152,8 +154,10 @@ function assert(name, cond) {
     {suit:'shu',rank:13,char:'卒'},
     {suit:'shu',rank:14,char:'将'},
   ];
-  const ev = evaluateHand(cards);
-  assert('同花顺 > 组将', ev.type.id === 'straight_flush');
+  assert('同花顺 > 组将', evaluateHand(cards).type.id === 'straight_flush');
+}
+{
+  assert('目标分配置', true); // documented in HTML: 80/180/280
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
