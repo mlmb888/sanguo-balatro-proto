@@ -137,7 +137,7 @@ body {
 }
 .hand::-webkit-scrollbar { height: 0; }
 .card {
-  width: 48px; height: 76px; border-radius: 6px; flex-shrink: 0;
+  width: 44px; height: 72px; border-radius: 6px; flex-shrink: 0;
   background: linear-gradient(165deg, #f7ecd2, #e8d5a8);
   color: var(--ink); border: 1.5px solid #c4a86a;
   box-shadow: 0 3px 8px rgba(0,0,0,.4);
@@ -156,7 +156,7 @@ body {
 .card .corner .suit-dot { display: block; font-size: .55rem; opacity: .85; }
 .card .char {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 1.55rem; font-weight: 700; margin-top: 8px;
+  font-size: 1.45rem; font-weight: 700; margin-top: 6px;
 }
 .card.s-wei .corner { color: var(--wei); }
 .card.s-shu .corner { color: var(--shu); }
@@ -574,12 +574,8 @@ function renderHand() {
   }
   // Keep hand scroll within bounds (prevent negative overflow clipping clicks)
   requestAnimationFrame(() => {
-    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
-    el.scrollLeft = Math.min(Math.max(0, el.scrollLeft), maxScroll);
-    if (el.dataset.inited !== '1') {
-      el.scrollLeft = maxScroll / 2;
-      el.dataset.inited = '1';
-    }
+    // Keep leftmost cards on-screen; user can swipe right for the rest
+    el.scrollLeft = 0;
   });
   updatePreview();
 }
