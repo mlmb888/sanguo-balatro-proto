@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>三国小丑牌 · 试玩</title>
-<meta name="sg-proto-v" content="3" />
+<meta name="sg-proto-v" content="4" />
 <style>
 :root {
   --bg: #1a1410;
@@ -281,9 +281,9 @@ body {
   <!-- Title -->
   <div id="title" class="screen active">
     <h1>三国小丑牌</h1>
-    <div class="sub">武将即小丑 · 战役盲注 · 汉字组名<br/>底分 × 倍率 · 非文字塔防</div>
+    <div class="sub">三国小丑牌 v0.4<br/>武将即小丑 · 宣战花色 · 底分×倍率</div>
     <button class="btn primary" id="btn-start">开 始 试 玩</button>
-    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · v0.3 · 点数入分 · 宣战花色 · 目标120/260/400</div>
+    <div class="sub" style="margin-top:8px;font-size:.75rem">章一 · v0.4 · 更难 · 目标380/800/1200 · 乱出掉气势</div>
   </div>
 
   <!-- Game -->
@@ -437,9 +437,10 @@ const GENERALS = {
 const FACTION_NAME = { wei: '魏', shu: '蜀', wu: '吴', qun: '群' };
 
 const STAGES = [
-  { id: 'hj1', name: '黄巾 · 小关1', target: 120, plays: 4, discards: 2, boss: null, reward: 12 },
-  { id: 'hj2', name: '黄巾 · 小关2', target: 260, plays: 4, discards: 2, boss: null, reward: 16 },
-  { id: 'hlg', name: 'Boss · 虎牢关', target: 400, plays: 4, discards: 2,
+  // v0.4 由 sim.mjs 标定：随机通关~0%，基本策略~58%（n=50）
+  { id: 'hj1', name: '黄巾 · 小关1', target: 380, plays: 3, discards: 2, boss: null, reward: 12 },
+  { id: 'hj2', name: '黄巾 · 小关2', target: 800, plays: 3, discards: 2, boss: null, reward: 16 },
+  { id: 'hlg', name: 'Boss · 虎牢关', target: 1200, plays: 3, discards: 2,
     boss: { text: '虎牢关：必须对子及以上才计分，高牌得 0', minPri: 2 }, reward: 24 },
 ];
 
@@ -594,17 +595,24 @@ function applyJokers(evalResult, cards, jokers, ctx) {
   const notes = [];
   if (warBonus) notes.push('宣战+' + warBonus);
 
-  // B1. 阵营共鸣：每张与任一装备小丑同阵营的牌，倍率+1
+  // B1. 阵营共鸣：每张同阵营 +1 倍，每回合上限 +3
   const factions = equippedFactions(jokers);
-  let resonate = 0;
+  let resonateRaw = 0;
   if (factions.size) {
     for (const c of cards) {
-      if (factions.has(c.suit)) resonate++;
+      if (factions.has(c.suit)) resonateRaw++;
     }
   }
+  const resonate = Math.min(3, resonateRaw);
   if (resonate) {
     mult += resonate;
-    notes.push('共鸣×' + resonate);
+    notes.push('共鸣×' + resonate + (resonateRaw > 3 ? '(封顶)' : ''));
+  }
+  // 连续两回高牌后，下一次倍率 -1（最低 1）
+  if (ctx.highStreak >= 2) {
+    const before = mult;
+    mult = Math.max(1, mult - 1);
+    if (mult < before) notes.push('连出高牌惩罚-1倍');
   }
 
   for (const jid of jokers) {
@@ -659,6 +667,7 @@ const state = {
   gazeUsed: false,
   playsMadeThisStage: 0,
   zhaoyunUsedThisStage: false,
+  highStreak: 0,
   warSuit: 'shu',
   warSuitPlayed: false,
   warLocked: false,
@@ -666,7 +675,7 @@ const state = {
   lastGaze: null,
 };
 
-const LS_TUT = 'sg_balatro_tut_v3';
+const LS_TUT = 'sg_balatro_tut_v4';
 const LS_BOSS = 'sg_balatro_boss_tip_v1';
 const TUT_STEPS = [
   { title: '① 选牌', body: '点选手牌（最多5张），选中的牌会上浮。再点一次可取消。' },
@@ -757,6 +766,7 @@ function jokerCtxForPreview() {
     firstPlay: state.playsMadeThisStage === 0,
     zhaoyunUsed: state.zhaoyunUsedThisStage,
     warSuit: state.warSuit,
+    highStreak: state.highStreak,
   };
 }
 function updatePreview() {
@@ -814,6 +824,7 @@ function startStage() {
   state.gazeUsed = false;
   state.playsMadeThisStage = 0;
   state.zhaoyunUsedThisStage = false;
+  state.highStreak = 0;
   state.warSuitPlayed = false;
   state.warLocked = false;
   // 默认随机一门宣战（可再点选）
@@ -973,6 +984,9 @@ function playHand() {
     state.warSuitPlayed = true;
   }
   state.warLocked = true;
+  // 高牌连击计数（用于下一次惩罚）
+  if (ev.type.id === 'high') state.highStreak += 1;
+  else state.highStreak = 0;
   state.score += finalScore;
   state.playsLeft--;
   state.playsMadeThisStage++;
@@ -1097,6 +1111,7 @@ function resetRun() {
   state.jokerSlots = 2;
   state.playsMadeThisStage = 0;
   state.zhaoyunUsedThisStage = false;
+  state.highStreak = 0;
   state.warSuit = 'shu';
   state.warSuitPlayed = false;
   state.warLocked = false;
