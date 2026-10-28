@@ -1,16 +1,17 @@
-# 三国组字（v0.7）
+# 三国组字（v0.8）
 
-竖屏 H5：**合成 / 拼字养成**（非扑克、非塔防）。
+竖屏 H5：**合成 / 拼字养成** + 词型底分 + 武将改规则 + 邻接连锁（非扑克、非塔防）。
 
 ## 试玩
 
-https://mlmb888.github.io/sanguo-balatro-proto/?v=7
+https://mlmb888.github.io/sanguo-balatro-proto/?v=8
 
 ## 怎么玩
 
 1. **抽一字** 填入 4×3 空槽  
-2. **点两格合成**：同字升阶（兵→锐→将）；关+羽→关羽  
-3. 场上单位提供 **底分×倍率 = 战力**，凑够本关目标  
+2. **点两格合成**：同字升阶（兵→将→帅）；关+羽→关羽  
+3. 场上按 **词型** 计底分，武将 **改规则**，邻接触发 **连锁倍率**  
+4. 凑够本关目标战力  
 
 章一：小关1 → 小关2 → 虎牢关（必须有武将才计战力）。
 
@@ -19,5 +20,6 @@ https://mlmb888.github.io/sanguo-balatro-proto/?v=7
 ```bash
 npx serve -l 5173 .
 node test-logic.mjs
+node sim.mjs
 node smoke.mjs
 ```

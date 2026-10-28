@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<title>三国组字 · 试玩</title>
-<meta name="sg-proto-v" content="7" />
+<title>三国组字 · v0.8</title>
+<meta name="sg-proto-v" content="8" />
 <style>
 :root {
   --bg: #1a1410;
@@ -48,7 +48,7 @@ body {
   text-shadow: 0 2px 0 #000, 0 0 24px rgba(201,162,39,.4);
   font-family: "Songti SC", "Noto Serif SC", serif;
 }
-#title .sub { opacity: .7; font-size: .88rem; line-height: 1.6; max-width: 300px; }
+#title .sub { opacity: .7; font-size: .88rem; line-height: 1.6; max-width: 320px; }
 
 .btn {
   appearance: none; border: 1px solid var(--gold);
@@ -96,7 +96,7 @@ body {
   text-shadow: 0 0 16px rgba(201,162,39,.45);
 }
 .power-panel .eq .x { color: var(--gold); margin: 0 .15em; }
-.power-panel .muted { opacity: .55; font-size: .72rem; margin-top: 4px; }
+.power-panel .muted { opacity: .55; font-size: .72rem; margin-top: 4px; min-height: 1.1em; }
 .power-panel .pop { animation: pop .45s ease; }
 @keyframes pop {
   0% { transform: scale(.7); opacity: .3; }
@@ -104,8 +104,25 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
+.guide-banner {
+  margin: 0 0 6px; padding: 8px 10px; border-radius: 10px;
+  border: 1px dashed var(--gold); background: rgba(201,162,39,.12);
+  font-size: .78rem; line-height: 1.45; color: #f0e0b0; flex-shrink: 0;
+  display: none;
+}
+.guide-banner.show { display: block; animation: fadein .3s ease; }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
 .hint-line {
   text-align: center; font-size: .72rem; opacity: .5; padding: 2px 4px 6px; flex-shrink: 0;
+}
+.rules-chip {
+  display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;
+  padding: 0 4px 6px; flex-shrink: 0; min-height: 0;
+}
+.rules-chip span {
+  font-size: .62rem; padding: 2px 6px; border-radius: 999px;
+  border: 1px solid rgba(201,162,39,.4); background: rgba(0,0,0,.25); opacity: .85;
 }
 
 .board {
@@ -134,9 +151,16 @@ body {
   box-shadow: 0 0 0 2px rgba(201,162,39,.55), 0 0 14px rgba(201,162,39,.35);
 }
 .slot.merge-flash { animation: mergeFlash .5s ease; }
+.slot.glow { animation: cellGlow .55s ease; z-index: 2; }
+.slot.chain-glow { box-shadow: 0 0 0 2px #6ecfff, 0 0 18px rgba(110,200,255,.55); }
 @keyframes mergeFlash {
   0% { transform: scale(.85); filter: brightness(1.6); }
   100% { transform: scale(1); filter: brightness(1); }
+}
+@keyframes cellGlow {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.8); transform: scale(1.08); }
+  100% { filter: brightness(1); transform: scale(1); }
 }
 .slot .char {
   font-size: 1.55rem; font-weight: 800;
@@ -197,11 +221,12 @@ body {
 }
 .ink-flash.show { display: flex; animation: inkFlash .95s ease forwards; }
 .ink-flash .ink-name {
-  font-size: 2.8rem; font-weight: 900; color: #f3e6c8; letter-spacing: .3em;
+  font-size: 2.4rem; font-weight: 900; color: #f3e6c8; letter-spacing: .2em;
   font-family: "Songti SC", "Noto Serif SC", serif;
   text-shadow: 0 0 28px rgba(201,162,39,.85), 2px 3px 0 #3a2810;
-  transform: rotate(-5deg);
+  transform: rotate(-5deg); text-align: center; padding: 0 12px;
 }
+.ink-flash.chain .ink-name { color: #9fdfff; letter-spacing: .15em; font-size: 2.1rem; transform: none; }
 @keyframes inkFlash {
   0% { opacity: 0; } 15% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; }
 }
@@ -217,25 +242,27 @@ body {
 
   <div id="title" class="screen active">
     <h1>三国组字</h1>
-    <div class="sub">v0.7 · 合成养成<br/>点两格合成 · 拼出武将叠战力</div>
+    <div class="sub">v0.8 · 词型底分 · 武将改规则 · 连锁倍率<br/>合成拼字养成 · 无扑克 · 无塔防</div>
     <button class="btn primary" id="btn-start">开 始 试 玩</button>
-    <div class="sub" style="margin-top:8px;font-size:.75rem">无扑克 · 无塔防 · 水墨汉字</div>
+    <div class="sub" style="margin-top:8px;font-size:.75rem">30 秒上手 · 水墨汉字</div>
   </div>
 
   <div id="game" class="screen">
     <div class="hud">
-      <div class="full"><span class="label" id="stage-name">黄巾</span><span class="val" id="draws">抽字 14</span></div>
+      <div class="full"><span class="label" id="stage-name">黄巾</span><span class="val" id="draws">抽字 15</span></div>
       <div class="progress-wrap">
-        <div class="row"><span class="label">战力 / 目标</span><span class="big"><span id="power">0</span> / <span id="target">80</span></span></div>
+        <div class="row"><span class="label">战力 / 目标</span><span class="big"><span id="power">0</span> / <span id="target">120</span></span></div>
         <div class="bar"><i id="power-bar"></i></div>
       </div>
     </div>
     <div id="boss-rule" class="boss-rule" style="display:none"></div>
     <div class="power-panel">
       <div class="eq" id="power-eq">0 <span class="x">×</span> 1 <span class="x">=</span> 0</div>
-      <div class="muted" id="power-note">底分合计 × 倍率合计（至少×1）</div>
+      <div class="muted" id="power-note">词型底分 × 倍率（含连锁）</div>
     </div>
-    <div class="hint-line" id="hint">点选两格合成：同字升阶，或 关+羽 成将</div>
+    <div id="guide" class="guide-banner"></div>
+    <div class="rules-chip" id="rules-chip"></div>
+    <div class="hint-line" id="hint">点选两格合成</div>
     <div class="board" id="board"></div>
     <div class="actions">
       <button class="btn primary" id="btn-draw">抽 一字</button>
@@ -251,7 +278,7 @@ body {
 
   <div id="tutorial" class="overlay">
     <div class="tut-card">
-      <div class="steps" id="tut-steps" style="opacity:.5;font-size:.75rem;margin-bottom:8px">1 / 3</div>
+      <div class="steps" id="tut-steps" style="opacity:.5;font-size:.75rem;margin-bottom:8px">1 / 4</div>
       <h3 id="tut-title">①</h3>
       <p id="tut-body"></p>
       <div class="tut-actions">
@@ -267,17 +294,18 @@ body {
 
 <script type="module">
 import {
-  COLS, ROWS, SLOT_COUNT, STAGES, UNIT_STATS,
-  emptyBoard, spawnInto, tryMerge, effectivePower, makeUnit, calcPower, resetUid,
+  SLOT_COUNT, STAGES, HERO_RULES, PROTO_V,
+  emptyBoard, spawnInto, tryMerge, effectivePower, settleBoard, resetUid,
 } from './merge-logic.mjs';
 
 const $ = (id) => document.getElementById(id);
-const LS_TUT = 'sg_merge_tut_v7';
+const LS_TUT = 'sg_merge_tut_v8';
 
 const TUT = [
-  { title: '① 抽字入格', body: '点「抽一字」把汉字填进空槽（4×3）。兵/刀可升阶，关/羽等用来拼武将。' },
-  { title: '② 点两格合成', body: '先点一格再点另一格：两相同→升阶（兵→锐→将）；关+羽→关羽。拖拽也可（按住滑向目标格）。' },
-  { title: '③ 战力=底分×倍率', body: '武将留在场上提供底分与倍率。凑够目标战力即破关。虎牢关必须场上有武将。' },
+  { title: '① 抽字 · 点两格合成', body: '点「抽一字」填空槽。再点两格：相同字升阶（兵→将→帅）；关+羽→关羽。' },
+  { title: '② 词型固定底分', body: '武将名、同阵营、成语（桃园结义等）各有固定底分×倍率。词越难分越高——不是扑克牌型。' },
+  { title: '③ 武将改规则', body: '武将留场会改规则：诸葛亮让成语倍率×2；赵云让边缘字算两次；曹操让魏字当万能……' },
+  { title: '④ 邻接连锁', body: '同阵营/同部首相邻会连锁，级数越高倍率越高。合成后看发光与大字提示。凑够战力破关！' },
 ];
 
 const state = {
@@ -287,6 +315,10 @@ const state = {
   selected: -1,
   phase: 'title',
   busy: false,
+  guideStep: 0,
+  didDraw: false,
+  didMerge: false,
+  didHero: false,
 };
 
 function toast(msg) {
@@ -302,9 +334,10 @@ function showScreen(id) {
   $(id).classList.add('active');
 }
 
-function showInk(name) {
+function showInk(name, chain = false) {
   $('ink-name').textContent = name;
   const box = $('ink-flash');
+  box.classList.toggle('chain', !!chain);
   box.classList.remove('show');
   void box.offsetWidth;
   box.classList.add('show');
@@ -312,17 +345,94 @@ function showInk(name) {
   app.classList.remove('shake');
   void app.offsetWidth;
   app.classList.add('shake');
-  setTimeout(() => box.classList.remove('show'), 950);
-  setTimeout(() => app.classList.remove('shake'), 450);
+  setTimeout(() => box.classList.remove('show'), 900);
+  setTimeout(() => app.classList.remove('shake'), 400);
+}
+
+function glowIndices(indices, cls = 'glow') {
+  for (const i of indices || []) {
+    const node = document.querySelector(`.slot[data-i="${i}"]`);
+    if (!node) continue;
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
+    setTimeout(() => node.classList.remove(cls), 550);
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function playSettlement(prevPower) {
+  const settled = settleBoard(state.slots, STAGES[state.stageIdx]);
+  const steps = settled.steps || [];
+  // 只播关键步骤，避免太长
+  const key = steps.filter(s => s.kind === 'pattern' && (String(s.name).includes('武将') || String(s.name).includes('桃园') || String(s.name).includes('三顾') || String(s.name).includes('草船') || String(s.name).includes('温酒') || String(s.name).includes('单骑') || String(s.name).includes('满阶') || String(s.name).includes('同阵')))
+    .slice(0, 4);
+  const chains = steps.filter(s => s.kind === 'chain');
+  const extras = steps.filter(s => s.kind === 'extra' || s.kind === 'rule');
+
+  for (const s of key) {
+    glowIndices(s.indices, 'glow');
+    const eq = $('power-eq');
+    eq.classList.remove('pop'); void eq.offsetWidth; eq.classList.add('pop');
+    eq.innerHTML = `${s.base} <span class="x">×</span> ${Number(s.mult).toFixed(1)} <span class="x">=</span> ${Math.round(s.base * s.mult)}`;
+    $('power-note').textContent = s.name;
+    await sleep(280);
+  }
+  for (const s of chains.slice(0, 2)) {
+    glowIndices(s.indices, 'chain-glow');
+    showInk(`连锁 ×${s.level}`, true);
+    $('power-note').textContent = s.name;
+    await sleep(420);
+  }
+  for (const s of extras.slice(0, 2)) {
+    glowIndices(s.indices, 'glow');
+    if (s.kind === 'extra') showInk(s.name);
+    $('power-note').textContent = s.name;
+    await sleep(320);
+  }
+
+  // 最终数字跳动
+  const eq = $('power-eq');
+  eq.classList.remove('pop'); void eq.offsetWidth; eq.classList.add('pop');
+  eq.innerHTML = `${settled.baseSum} <span class="x">×</span> ${settled.mult} <span class="x">=</span> ${settled.power}`;
+  if (settled.power > prevPower) {
+    // tick
+    let v = prevPower;
+    const target = settled.power;
+    const frames = 8;
+    for (let f = 1; f <= frames; f++) {
+      v = Math.round(prevPower + (target - prevPower) * (f / frames));
+      $('power').textContent = v;
+      await sleep(30);
+    }
+  }
+  return settled;
+}
+
+function updateGuide() {
+  const el = $('guide');
+  const st = STAGES[state.stageIdx];
+  if (!st.guide || state.stageIdx !== 0) {
+    el.classList.remove('show');
+    return;
+  }
+  let text = '';
+  if (!state.didDraw) text = '引导①：先点下方「抽一字」，汉字会落入空槽。';
+  else if (!state.didMerge) text = '引导②：点一个字，再点可合成的另一格（高亮）。相同升阶，关+羽成将。';
+  else if (!state.didHero) text = '引导③：继续拼武将！武将会改规则，邻接同阵营会连锁加倍率。';
+  else text = '引导④：看顶上「底分×倍率」。凑够目标即破关。成语（桃园结义）分更高！';
+  el.textContent = text;
+  el.classList.add('show');
 }
 
 function currentPower() {
   return effectivePower(state.slots, STAGES[state.stageIdx]);
 }
 
-function renderHUD() {
+function renderHUD(settled) {
   const st = STAGES[state.stageIdx];
-  const p = currentPower();
+  const p = settled || currentPower();
   $('stage-name').textContent = st.name;
   $('draws').textContent = '抽字 ' + state.drawsLeft;
   $('target').textContent = st.target;
@@ -330,20 +440,29 @@ function renderHUD() {
   const pct = Math.min(100, Math.round((p.power / st.target) * 100));
   $('power-bar').style.width = pct + '%';
   const eq = $('power-eq');
-  eq.classList.remove('pop');
-  void eq.offsetWidth;
-  eq.classList.add('pop');
   eq.innerHTML = `${p.baseSum} <span class="x">×</span> ${p.mult} <span class="x">=</span> ${p.power}`;
-  let note = '底分合计 × 倍率合计（至少×1）';
+  let note = (p.notes && p.notes.length) ? p.notes.slice(0, 3).join(' · ') : '词型底分 × 倍率（含连锁）';
   if (p.blocked) note = '虎牢关：场上无武将，战力不计';
   $('power-note').textContent = note;
   const br = $('boss-rule');
-  if (st.boss) {
-    br.style.display = '';
-    br.textContent = st.boss.text;
-  } else br.style.display = 'none';
+  if (st.boss) { br.style.display = ''; br.textContent = st.boss.text; }
+  else br.style.display = 'none';
   $('hint').textContent = st.hint + (state.selected >= 0 ? ' · 再点目标格合成' : ' · 点一格选中');
   $('btn-draw').disabled = state.drawsLeft <= 0 || state.phase !== 'play' || !state.slots.some(s => !s);
+
+  // 场上武将规则芯片
+  const chip = $('rules-chip');
+  chip.innerHTML = '';
+  const heroes = (p.heroes || []).map(h => h.name);
+  const uniq = [...new Set(heroes)];
+  for (const name of uniq) {
+    const rule = HERO_RULES[name];
+    if (!rule) continue;
+    const span = document.createElement('span');
+    span.textContent = name + '·' + rule.short;
+    chip.appendChild(span);
+  }
+  updateGuide();
 }
 
 function canMergeWith(i, j) {
@@ -369,14 +488,13 @@ function renderBoard() {
       else if (state.selected >= 0 && canMergeWith(state.selected, i)) div.classList.add('can-merge');
       const long = u.name.length >= 3;
       const stars = u.star > 1 ? '★'.repeat(u.star) : '';
-      const m = (u.mult || 0) + (u.multBonus || 0);
+      const rule = u.kind === 'hero' && HERO_RULES[u.name] ? HERO_RULES[u.name].short : '';
       div.innerHTML = `
         <div class="char${long ? ' long' : ''}">${u.name}</div>
-        <div class="meta"><span>${u.base}${stars ? ' ' + stars : ''}</span><span>${m ? '×' + m : ''}</span></div>`;
+        <div class="meta"><span>${u.kind === 'hero' ? '将' : u.base}${stars ? ' ' + stars : ''}</span><span>${rule ? '改' : ''}</span></div>`;
+      if (rule) div.title = HERO_RULES[u.name].desc;
     }
-    // tap
     div.addEventListener('click', () => onTapSlot(i));
-    // simple drag: pointer
     div.addEventListener('pointerdown', (e) => {
       if (!state.slots[i] || state.phase !== 'play') return;
       div.setPointerCapture?.(e.pointerId);
@@ -399,8 +517,8 @@ function renderBoard() {
   }
 }
 
-function renderAll() {
-  renderHUD();
+function renderAll(settled) {
+  renderHUD(settled);
   renderBoard();
 }
 
@@ -425,7 +543,7 @@ function onTapSlot(i) {
   doMerge(state.selected, i);
 }
 
-function doMerge(i, j) {
+async function doMerge(i, j) {
   if (state.busy) return;
   const r = tryMerge(state.slots, i, j);
   if (!r.ok) {
@@ -435,11 +553,13 @@ function doMerge(i, j) {
     return;
   }
   state.busy = true;
+  const prev = currentPower().power;
   state.slots = r.slots;
   state.selected = -1;
-  renderAll();
+  state.didMerge = true;
+  if (r.result?.kind === 'hero') state.didHero = true;
+  renderBoard();
 
-  // flash target
   const node = document.querySelector(`.slot[data-i="${j}"]`);
   if (node) {
     node.classList.add('merge-flash');
@@ -448,7 +568,8 @@ function doMerge(i, j) {
 
   if (r.kind === 'spell' && r.result.kind === 'hero') {
     showInk(r.result.name);
-    toast('组字成功 · ' + r.result.name);
+    const rule = HERO_RULES[r.result.name];
+    toast('组字·' + r.result.name + (rule ? '（' + rule.short + '）' : ''));
   } else if (r.kind === 'star') {
     showInk(r.result.name + '★' + r.result.star);
     toast(r.result.name + ' 升至 ' + r.result.star + ' 星');
@@ -456,10 +577,11 @@ function doMerge(i, j) {
     toast(r.reason);
   }
 
-  setTimeout(() => {
-    state.busy = false;
-    checkWin();
-  }, r.kind === 'spell' ? 550 : 280);
+  await sleep(r.kind === 'spell' ? 380 : 180);
+  const settled = await playSettlement(prev);
+  renderAll(settled);
+  state.busy = false;
+  checkWin();
 }
 
 function doDraw() {
@@ -471,12 +593,10 @@ function doDraw() {
   state.slots = slots;
   state.drawsLeft--;
   state.selected = -1;
+  state.didDraw = true;
   toast('抽到「' + spawned.name + '」');
   renderAll();
-  if (state.drawsLeft <= 0) {
-    // last chance: maybe already won
-    checkWin(true);
-  }
+  if (state.drawsLeft <= 0) checkWin(true);
 }
 
 function checkWin(forceEnd = false) {
@@ -485,14 +605,15 @@ function checkWin(forceEnd = false) {
   if (p.power >= st.target) {
     state.phase = 'result';
     $('result-title').textContent = '破关！';
-    $('result-body').textContent = `${st.name} 战力 ${p.power}/${st.target}（${p.baseSum}×${p.mult}）`;
+    const top = (p.patterns || []).filter(x => x.pri >= 5).slice(0, 3).map(x => x.name).join('、');
+    $('result-body').textContent = `${st.name} 战力 ${p.power}/${st.target}（${p.baseSum}×${p.mult}）` + (top ? `\n词型：${top}` : '');
     $('result').classList.add('active');
     return true;
   }
   if (forceEnd || (state.drawsLeft <= 0 && !canAnyMerge())) {
     state.phase = 'result';
     $('result-title').textContent = '功败垂成';
-    $('result-body').textContent = `战力 ${p.power}/${st.target}。再试一局或合成出武将叠倍率。`;
+    $('result-body').textContent = `战力 ${p.power}/${st.target}。试着拼成语、把同阵武将挨着放触发连锁。`;
     $('result').classList.add('active');
     return true;
   }
@@ -518,7 +639,9 @@ function startStage(idx) {
   state.selected = -1;
   state.phase = 'play';
   state.busy = false;
-  // seed 3 chars
+  state.didDraw = false;
+  state.didMerge = false;
+  state.didHero = false;
   for (let k = 0; k < 3; k++) {
     const s = spawnInto(state.slots);
     state.slots = s.slots;
@@ -537,17 +660,15 @@ function nextAfterResult() {
     if (state.stageIdx >= STAGES.length - 1) {
       state.phase = 'title';
       showScreen('title');
-      toast('章一通关！水墨组字养成原型');
+      toast('章一通关！v' + PROTO_V + ' 词型·武将·连锁');
       return;
     }
     startStage(state.stageIdx + 1);
   } else {
-    // retry same stage
     startStage(state.stageIdx);
   }
 }
 
-// tutorial
 let tutIndex = 0;
 function openTut() {
   tutIndex = 0;
@@ -580,8 +701,7 @@ $('btn-draw').onclick = doDraw;
 $('btn-clear-sel').onclick = () => { state.selected = -1; renderAll(); };
 $('btn-result').onclick = nextAfterResult;
 
-// expose for smoke
-window.SGMerge = { state, tryMerge, effectivePower, startStage, doMerge, STAGES, makeUnit };
+window.SGMerge = { state, tryMerge, effectivePower, settleBoard, startStage, doMerge, STAGES, PROTO_V, HERO_RULES };
 </script>
 </body>
 </html>

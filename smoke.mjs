@@ -1,6 +1,6 @@
-/** v0.7 冒烟：basic 策略能否走完主路径（抽字+合成达目标） */
+/** v0.8 冒烟：basic 策略通关率 */
 import {
-  STAGES, emptyBoard, spawnInto, tryMerge, effectivePower, basicMergePick, resetUid,
+  STAGES, emptyBoard, spawnInto, tryMerge, effectivePower, basicMergePick, resetUid, PROTO_V,
 } from './merge-logic.mjs';
 
 function mulberry32(a) {
@@ -21,66 +21,53 @@ function playStage(stage, seed) {
     const s = spawnInto(slots, rng);
     slots = s.slots;
   }
-  let merges = 0;
-  const maxSteps = 80;
-  for (let step = 0; step < maxSteps; step++) {
+  for (let step = 0; step < 100; step++) {
     const p = effectivePower(slots, stage);
-    if (p.power >= stage.target) return { win: true, power: p.power, merges, drawsLeft: draws };
+    if (p.power >= stage.target) return { win: true, power: p.power };
 
-    // prefer merge if available
     const pick = basicMergePick(slots);
     if (pick) {
       const r = tryMerge(slots, pick.i, pick.j);
-      if (r.ok) {
-        slots = r.slots;
-        merges++;
-        continue;
-      }
+      if (r.ok) { slots = r.slots; continue; }
     }
-    // else draw
     if (draws > 0 && slots.some(x => !x)) {
       const s = spawnInto(slots, rng);
       slots = s.slots;
       draws--;
       continue;
     }
-    // stuck: try any merge
     let any = false;
     for (let i = 0; i < slots.length && !any; i++) {
       for (let j = 0; j < slots.length; j++) {
         if (i === j || !slots[i] || !slots[j]) continue;
         const r = tryMerge(slots, i, j);
-        if (r.ok) { slots = r.slots; merges++; any = true; break; }
+        if (r.ok) { slots = r.slots; any = true; break; }
       }
     }
     if (!any) break;
   }
   const p = effectivePower(slots, stage);
-  return { win: p.power >= stage.target, power: p.power, merges, drawsLeft: draws };
+  return { win: p.power >= stage.target, power: p.power };
 }
 
+console.log('PROTO', PROTO_V);
 let fails = 0;
 for (let si = 0; si < STAGES.length; si++) {
   let wins = 0;
   const N = 40;
   for (let i = 0; i < N; i++) {
-    const r = playStage(STAGES[si], 1000 + si * 1000 + i);
-    if (r.win) wins++;
+    if (playStage(STAGES[si], 1000 + si * 1000 + i).win) wins++;
   }
   const rate = wins / N;
   console.log(STAGES[si].id, 'target', STAGES[si].target, 'winRate', rate);
-  // 主路径：basic 至少有一定胜率（难度友好）
-  if (rate < 0.15) {
+  // 小关至少能过一些；Boss 允许更低但不为 0 崩
+  const min = si < 2 ? 0.25 : 0.1;
+  if (rate < min) {
     console.error('FAIL low win rate', STAGES[si].id);
     fails++;
   }
 }
-// one deterministic path log
 const demo = playStage(STAGES[0], 42);
 console.log('demo hj1', demo);
-if (!demo.win && demo.power < 40) {
-  // soft: still ok if logic runs
-  console.log('demo did not clear but smoke continues');
-}
 console.log(fails ? 'SMOKE FAIL' : 'SMOKE OK');
 process.exit(fails ? 1 : 0);
